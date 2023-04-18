@@ -2,9 +2,10 @@
   "name": "xuanbing",
   "version": "0.0.1",
   "description": "针对我自己需求解决软件",
-  "main": "index.html",
+  "main": "electron/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
   },
   "repository": {
     "type": "git",
@@ -18,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/xuanbingBank/xuanbing/issues"
   },
-  "homepage": "https://github.com/xuanbingBank/xuanbing#readme"
+  "homepage": "https://github.com/xuanbingBank/xuanbing#readme",
+  "devDependencies": {
+    "electron": "^24.1.2"
+  }
 }
