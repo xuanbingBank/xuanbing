@@ -1,0 +1,22 @@
+{
+  "name": "xuanbing",
+  "version": "0.0.1",
+  "description": "针对我自己需求解决软件",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xuanbingBank/xuanbing.git"
+  },
+  "keywords": [
+    "xuanbing"
+  ],
+  "author": "xuanbing",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/xuanbingBank/xuanbing/issues"
+  },
+  "homepage": "https://github.com/xuanbingBank/xuanbing#readme"
+}
