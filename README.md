@@ -24,5 +24,5 @@
 
 
 
-# 鸣谢开源项目
+# 鸣谢依赖开源项目列表
 - http://github.com/electron/electron `MIT License`
