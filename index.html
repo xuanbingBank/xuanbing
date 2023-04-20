@@ -21,13 +21,27 @@
         display: flex;
         flex-direction: row;
         align-items: center;
+        justify-content: center;
+        align-content: center;
       }
       #menu {
-        height: 100%;
+        width: 100px;
+        height: 300px;
         background-color: var(--menu-background-color);
         display: flex;
-        flex: 1;
-
+        flex-direction: column;
+        align-items: center;
+        align-content: center;
+      }
+      #brightness{
+        width: 100px;
+        height: 100px;
+        background-color: #888888;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        align-content: center;
+        appearance: slider-vertical;
       }
     </style>
   </head>
@@ -51,7 +65,16 @@
         <i class=""></i>
         <a href="">设置</a>
       </div>
+      </div>
+      <div id="windows-setting">
+        <div id="brightness">
+          <div>亮度</div>
+          <div>
+            <input id="brightness" type="range" orient="vertical" min="0" max="100" value="50" />
+        </div>
+      </div>
     </div>
+
     <script></script>
   </body>
 </html>

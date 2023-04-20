@@ -25,4 +25,5 @@
 
 
 # 鸣谢依赖开源项目列表
+- 智能控制面板
 - http://github.com/electron/electron `MIT License`
