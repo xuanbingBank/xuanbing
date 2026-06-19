@@ -2,9 +2,11 @@
   "name": "all-in-one",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/electron/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "tsc && electron .",
+    "test": "tsc && node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
