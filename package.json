@@ -1,0 +1,21 @@
+{
+  "name": "all-in-one",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.29.3",
+  "dependencies": {
+    "daisyui": "^5.5.23",
+    "electron": "^42.4.1",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
+    "vue": "^3.5.38",
+    "vuex": "^4.1.0"
+  }
+}
