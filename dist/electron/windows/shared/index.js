@@ -1,0 +1,43 @@
+"use strict";
+/**
+ * @file 窗口管理系统的统一导出口。
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getCurrentWindowResponseSchema = exports.getInitPayloadResponseSchema = exports.windowRouteChangedEventSchema = exports.windowStateChangedEventSchema = exports.setWindowTitleRequestSchema = exports.windowListResponseSchema = exports.windowRefSchema = exports.windowControlResponseSchema = exports.windowControlRequestSchema = exports.openWindowResponseSchema = exports.openWindowRequestSchema = exports.resolveWindowConfig = exports.getWindowConfig = exports.validateWindowConfigs = exports.windowConfigs = exports.windowConfigSchema = exports.isWindowError = exports.createWindowError = exports.WINDOW_ERROR_CODES = exports.hasPermission = exports.DEFAULT_WINDOW_ROLE_PERMISSIONS = exports.isWindowPermission = exports.getDefaultRoute = exports.isRouteAllowedForRole = exports.matchRoutePattern = exports.WINDOW_ROUTE_MAP = exports.isWindowRole = exports.WINDOW_PERMISSIONS = exports.WINDOW_ROUTES = exports.WINDOW_ROLES = void 0;
+var window_types_1 = require("./window-types");
+Object.defineProperty(exports, "WINDOW_ROLES", { enumerable: true, get: function () { return window_types_1.WINDOW_ROLES; } });
+Object.defineProperty(exports, "WINDOW_ROUTES", { enumerable: true, get: function () { return window_types_1.WINDOW_ROUTES; } });
+Object.defineProperty(exports, "WINDOW_PERMISSIONS", { enumerable: true, get: function () { return window_types_1.WINDOW_PERMISSIONS; } });
+var window_roles_1 = require("./window-roles");
+Object.defineProperty(exports, "isWindowRole", { enumerable: true, get: function () { return window_roles_1.isWindowRole; } });
+var window_routes_1 = require("./window-routes");
+Object.defineProperty(exports, "WINDOW_ROUTE_MAP", { enumerable: true, get: function () { return window_routes_1.WINDOW_ROUTE_MAP; } });
+Object.defineProperty(exports, "matchRoutePattern", { enumerable: true, get: function () { return window_routes_1.matchRoutePattern; } });
+Object.defineProperty(exports, "isRouteAllowedForRole", { enumerable: true, get: function () { return window_routes_1.isRouteAllowedForRole; } });
+Object.defineProperty(exports, "getDefaultRoute", { enumerable: true, get: function () { return window_routes_1.getDefaultRoute; } });
+var window_permissions_1 = require("./window-permissions");
+Object.defineProperty(exports, "isWindowPermission", { enumerable: true, get: function () { return window_permissions_1.isWindowPermission; } });
+Object.defineProperty(exports, "DEFAULT_WINDOW_ROLE_PERMISSIONS", { enumerable: true, get: function () { return window_permissions_1.DEFAULT_WINDOW_ROLE_PERMISSIONS; } });
+Object.defineProperty(exports, "hasPermission", { enumerable: true, get: function () { return window_permissions_1.hasPermission; } });
+var window_errors_1 = require("./window-errors");
+Object.defineProperty(exports, "WINDOW_ERROR_CODES", { enumerable: true, get: function () { return window_errors_1.WINDOW_ERROR_CODES; } });
+Object.defineProperty(exports, "createWindowError", { enumerable: true, get: function () { return window_errors_1.createWindowError; } });
+Object.defineProperty(exports, "isWindowError", { enumerable: true, get: function () { return window_errors_1.isWindowError; } });
+var window_config_1 = require("./window-config");
+Object.defineProperty(exports, "windowConfigSchema", { enumerable: true, get: function () { return window_config_1.windowConfigSchema; } });
+Object.defineProperty(exports, "windowConfigs", { enumerable: true, get: function () { return window_config_1.windowConfigs; } });
+Object.defineProperty(exports, "validateWindowConfigs", { enumerable: true, get: function () { return window_config_1.validateWindowConfigs; } });
+Object.defineProperty(exports, "getWindowConfig", { enumerable: true, get: function () { return window_config_1.getWindowConfig; } });
+Object.defineProperty(exports, "resolveWindowConfig", { enumerable: true, get: function () { return window_config_1.resolveWindowConfig; } });
+var window_schemas_1 = require("./window-schemas");
+Object.defineProperty(exports, "openWindowRequestSchema", { enumerable: true, get: function () { return window_schemas_1.openWindowRequestSchema; } });
+Object.defineProperty(exports, "openWindowResponseSchema", { enumerable: true, get: function () { return window_schemas_1.openWindowResponseSchema; } });
+Object.defineProperty(exports, "windowControlRequestSchema", { enumerable: true, get: function () { return window_schemas_1.windowControlRequestSchema; } });
+Object.defineProperty(exports, "windowControlResponseSchema", { enumerable: true, get: function () { return window_schemas_1.windowControlResponseSchema; } });
+Object.defineProperty(exports, "windowRefSchema", { enumerable: true, get: function () { return window_schemas_1.windowRefSchema; } });
+Object.defineProperty(exports, "windowListResponseSchema", { enumerable: true, get: function () { return window_schemas_1.windowListResponseSchema; } });
+Object.defineProperty(exports, "setWindowTitleRequestSchema", { enumerable: true, get: function () { return window_schemas_1.setWindowTitleRequestSchema; } });
+Object.defineProperty(exports, "windowStateChangedEventSchema", { enumerable: true, get: function () { return window_schemas_1.windowStateChangedEventSchema; } });
+Object.defineProperty(exports, "windowRouteChangedEventSchema", { enumerable: true, get: function () { return window_schemas_1.windowRouteChangedEventSchema; } });
+Object.defineProperty(exports, "getInitPayloadResponseSchema", { enumerable: true, get: function () { return window_schemas_1.getInitPayloadResponseSchema; } });
+Object.defineProperty(exports, "getCurrentWindowResponseSchema", { enumerable: true, get: function () { return window_schemas_1.getCurrentWindowResponseSchema; } });

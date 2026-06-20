@@ -1,123 +1,81 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+/**
+ * @file 应用主进程入口，负责窗口创建、安全策略与 IPC Runtime 装配。
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
-const node_fs_1 = __importDefault(require("node:fs"));
-const node_path_1 = __importDefault(require("node:path"));
 const electron_1 = require("electron");
-const renderer_target_1 = require("./renderer-target");
+const main_1 = require("./ipcBus/main");
+const shared_1 = require("./ipcBus/shared");
 const APP_NAME = 'All In One';
-const DEFAULT_WINDOW_WIDTH = 960;
-const DEFAULT_WINDOW_HEIGHT = 640;
-const WINDOW_STATE_FILE = 'window-state.json';
+const MAIN_WINDOW_ROLE = 'main';
 const DEV_SERVER_URL = process.env.ELECTRON_RENDERER_URL;
 let mainWindow = null;
+let ipcRuntime = null;
 const gotInstanceLock = electron_1.app.requestSingleInstanceLock();
 if (!gotInstanceLock) {
     electron_1.app.quit();
 }
 process.on('uncaughtException', (error) => {
     console.error('[main] Uncaught exception', error);
-    electron_1.dialog.showErrorBox('Application Error', `${error.message}\n\nPlease restart the app.`);
+    electron_1.dialog.showErrorBox('Application Error', `${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease restart the app.`);
 });
 process.on('unhandledRejection', (reason) => {
     console.error('[main] Unhandled promise rejection', reason);
 });
-function getStateFilePath() {
-    return node_path_1.default.join(electron_1.app.getPath('userData'), WINDOW_STATE_FILE);
-}
-function loadWindowState() {
-    try {
-        const filePath = getStateFilePath();
-        if (node_fs_1.default.existsSync(filePath)) {
-            return JSON.parse(node_fs_1.default.readFileSync(filePath, 'utf-8'));
-        }
-    }
-    catch (error) {
-        console.warn('[window] Failed to read window state', error);
-    }
-    return {
-        width: DEFAULT_WINDOW_WIDTH,
-        height: DEFAULT_WINDOW_HEIGHT
-    };
-}
-function saveWindowState(win) {
-    try {
-        const bounds = win.getBounds();
-        const state = {
-            x: bounds.x,
-            y: bounds.y,
-            width: bounds.width,
-            height: bounds.height,
-            isMaximized: win.isMaximized()
-        };
-        node_fs_1.default.writeFileSync(getStateFilePath(), JSON.stringify(state, null, 2));
-    }
-    catch (error) {
-        console.warn('[window] Failed to save window state', error);
-    }
-}
-function getWindowOptions() {
-    const savedState = loadWindowState();
-    return {
-        x: savedState.x,
-        y: savedState.y,
-        width: savedState.width,
-        height: savedState.height,
-        minWidth: 720,
-        minHeight: 480,
-        title: APP_NAME,
-        show: false,
-        backgroundColor: electron_1.nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff',
-        autoHideMenuBar: true,
-        webPreferences: {
-            contextIsolation: true,
-            nodeIntegration: false,
-            sandbox: true,
-            webviewTag: false,
-            allowRunningInsecureContent: false,
-            javascript: true,
-            images: true
-        }
-    };
-}
-async function loadPageContent(win) {
-    const target = (0, renderer_target_1.resolveRendererTarget)({
-        appRoot: node_path_1.default.join(__dirname, '..', '..'),
-        devServerUrl: DEV_SERVER_URL,
-        isPackaged: electron_1.app.isPackaged
-    });
-    if (target.kind === 'url') {
-        await win.loadURL(target.url);
+/**
+ * 将新 WindowManager 创建的窗口注册到旧 WindowManager，使 IpcMainBus 能解析 sender 与分发事件。
+ *
+ * @param windowInstance 由新 WindowManager 工厂创建的 BrowserWindow。
+ */
+function registerWindowWithRuntime(windowInstance) {
+    if (!ipcRuntime) {
         return;
     }
-    await win.loadFile(target.filePath);
+    ipcRuntime.windowManager.registerWindow(windowInstance, {
+        windowId: windowInstance.id,
+        role: MAIN_WINDOW_ROLE
+    });
+    windowInstance.on('focus', () => {
+        ipcRuntime?.windowManager.setFocusedWindow(windowInstance.id);
+        ipcRuntime?.bus.broadcast(shared_1.IPC_EVENTS.windowFocusChanged, {
+            windowId: windowInstance.id,
+            focused: true
+        });
+    });
+    windowInstance.on('blur', () => {
+        ipcRuntime?.bus.broadcast(shared_1.IPC_EVENTS.windowFocusChanged, {
+            windowId: windowInstance.id,
+            focused: false
+        });
+    });
+    windowInstance.on('closed', () => {
+        ipcRuntime?.bus.cleanupWindow(windowInstance.id);
+        ipcRuntime?.taskRegistry.cleanupWindow(windowInstance.id);
+        ipcRuntime?.windowManager.unregisterWindow(windowInstance.id);
+    });
 }
+/**
+ * 创建主窗口。
+ *
+ * 使用新 WindowManager 的 openWindow 创建窗口，再将底层 BrowserWindow 注册到旧 WindowManager。
+ */
 function createWindow() {
+    if (!ipcRuntime) {
+        return;
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.focus();
         return;
     }
-    mainWindow = new electron_1.BrowserWindow(getWindowOptions());
-    mainWindow.once('ready-to-show', () => {
-        if (!mainWindow) {
-            return;
-        }
-        if (loadWindowState().isMaximized) {
-            mainWindow.maximize();
-        }
-        mainWindow.show();
-        mainWindow.focus();
-    });
-    mainWindow.on('close', () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            saveWindowState(mainWindow);
-        }
-    });
-    mainWindow.on('closed', () => {
-        mainWindow = null;
-    });
+    // 通过新 WindowManager 打开主窗口，由其负责创建 BrowserWindow、加载 URL、绑定生命周期。
+    const openResult = ipcRuntime.newWindowManager.openWindow(MAIN_WINDOW_ROLE);
+    const windowInstance = electron_1.BrowserWindow.fromId(openResult.windowId);
+    if (!windowInstance) {
+        console.error('[main] Failed to resolve BrowserWindow from new WindowManager.');
+        return;
+    }
+    mainWindow = windowInstance;
+    registerWindowWithRuntime(mainWindow);
     mainWindow.webContents.on('did-fail-load', (_event, code, description) => {
         console.error('[renderer] Failed to load page', code, description);
         electron_1.dialog.showErrorBox('Page Load Failed', `Error code: ${code}\n${description}`);
@@ -138,13 +96,26 @@ function createWindow() {
             mainWindow?.close();
         });
     });
-    void loadPageContent(mainWindow).catch((error) => {
-        console.error('[renderer] Failed to initialize page', error);
-        electron_1.dialog.showErrorBox('Startup Failed', error.message);
+    mainWindow.on('closed', () => {
+        mainWindow = null;
     });
     if (!electron_1.app.isPackaged) {
         mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
+}
+/**
+ * 初始化应用运行时。
+ */
+async function bootstrapApplication() {
+    ipcRuntime = await (0, main_1.createMainIpcRuntime)({
+        appName: APP_NAME
+    });
+    createWindow();
+    electron_1.app.on('activate', () => {
+        if (electron_1.BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        }
+    });
 }
 electron_1.app.on('second-instance', () => {
     if (!mainWindow) {
@@ -156,11 +127,9 @@ electron_1.app.on('second-instance', () => {
     mainWindow.focus();
 });
 electron_1.app.whenReady().then(() => {
-    createWindow();
-    electron_1.app.on('activate', () => {
-        if (electron_1.BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
+    void bootstrapApplication().catch((error) => {
+        console.error('[main] Failed to bootstrap application', error);
+        electron_1.dialog.showErrorBox('Startup Failed', error instanceof Error ? error.message : 'Unknown bootstrap error');
     });
 });
 electron_1.app.on('window-all-closed', () => {
@@ -169,7 +138,7 @@ electron_1.app.on('window-all-closed', () => {
     }
 });
 electron_1.app.on('before-quit', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        saveWindowState(mainWindow);
-    }
+    ipcRuntime?.taskRegistry.cancelAll();
+    ipcRuntime?.bus.dispose();
+    ipcRuntime?.newWindowManager.saveAllState();
 });

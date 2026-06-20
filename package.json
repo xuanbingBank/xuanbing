@@ -1,23 +1,30 @@
 {
-  "name": "all-in-one",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/electron/main.js",
-  "scripts": {
-    "build": "tsc",
-    "start": "tsc && electron .",
-    "test": "tsc && node --test test/*.test.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.29.3",
-  "dependencies": {
-    "daisyui": "^5.5.23",
-    "electron": "^42.4.1",
-    "tailwindcss": "^4.3.1",
-    "typescript": "^6.0.3",
-    "vue": "^3.5.38",
-    "vuex": "^4.1.0"
-  }
+    "name":  "all-in-one",
+    "version":  "1.0.0",
+    "description":  "",
+    "main":  "dist/electron/main.js",
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit",
+                    "build":  "tsc \u0026\u0026 node scripts/build-renderer-bundle.js",
+                    "start":  "tsc \u0026\u0026 node scripts/build-renderer-bundle.js \u0026\u0026 electron .",
+                    "test":  "tsc \u0026\u0026 node scripts/build-renderer-bundle.js \u0026\u0026 node --test test/*.test.js test/ipc/*.test.js test/windows/*.test.js"
+                },
+    "keywords":  [
+
+                 ],
+    "author":  "",
+    "license":  "ISC",
+    "packageManager":  "pnpm@10.29.3",
+    "dependencies":  {
+                         "daisyui":  "^5.5.23",
+                         "electron":  "^42.4.1",
+                         "tailwindcss":  "^4.3.1",
+                         "typescript":  "^6.0.3",
+                         "vue":  "^3.5.38",
+                         "vuex":  "^4.1.0",
+                         "zod":  "^4.1.12"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^26.0.0"
+                        }
 }
