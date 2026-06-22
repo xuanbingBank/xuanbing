@@ -1,0 +1,55 @@
+/**
+ * @file 全局样式入口，引入 Tailwind CSS、daisyUI 编译样式、Fluent token、主题、动画与滚动条。
+ *
+ * 项目使用纯 tsc 构建（无 Vite/PostCSS），Tailwind v4 由 HTML 中的 CDN 脚本提供，
+ * daisyUI v5 使用包内实际发布的 CSS 文件。本文件由 index.html 通过 <link> 直接加载。
+ * Fluent 自定义组件优先使用 --xb-* token，daisyUI 仍可在非 Fluent 区域使用。
+ */
+
+/* daisyUI 组件、基础样式与工具类。 */
+@import '../../../node_modules/daisyui/daisyui.css';
+
+/* daisyUI 全量主题变量。 */
+@import '../../../node_modules/daisyui/themes.css';
+
+/* Fluent 设计 token（颜色、圆角、阴影、间距、动效）。 */
+@import './tokens.css';
+
+/* Fluent 主题样式与全局基础样式。 */
+@import './fluent-theme.css';
+
+/* 自定义主题变量（品牌色补充）。 */
+@import './themes.css';
+
+/* Fluent 动效规范。 */
+@import './animations.css';
+
+/* 滚动条样式。 */
+@import './scrollbar.css';
+
+/* 全局基础样式。 */
+:root {
+  color-scheme: light dark;
+  font-family: var(--xb-font-family);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* 统一页面背景与文字颜色（由 Fluent token 驱动）。 */
+body {
+  background-color: var(--xb-bg-app);
+  color: var(--xb-text-primary);
+}

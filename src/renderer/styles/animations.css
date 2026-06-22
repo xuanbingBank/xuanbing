@@ -1,0 +1,215 @@
+/**
+ * @file Fluent UI 动效规范。
+ *
+ * 动效克制：hover 背景变化、active 缩放、菜单展开、浮层淡入位移、
+ * 页面切换 fade、drawer 滑入、modal 淡入 + scale、Toast slide。
+ * 全部尊重 prefers-reduced-motion。
+ */
+
+/* ── 基础过渡变量 ── */
+:root {
+  --xb-transition-fast: var(--xb-motion-fast) var(--xb-ease);
+  --xb-transition-normal: var(--xb-motion-normal) var(--xb-ease);
+  --xb-transition-slow: var(--xb-motion-slow) var(--xb-ease);
+}
+
+/* ── Fade ── */
+.xb-fade-enter-active,
+.xb-fade-leave-active {
+  transition: opacity var(--xb-motion-normal) var(--xb-ease);
+}
+.xb-fade-enter-from,
+.xb-fade-leave-to {
+  opacity: 0;
+}
+
+/* ── Fade + 位移（浮层） ── */
+.xb-fade-slide-enter-active,
+.xb-fade-slide-leave-active {
+  transition: opacity var(--xb-motion-normal) var(--xb-ease),
+    transform var(--xb-motion-normal) var(--xb-ease);
+}
+.xb-fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.xb-fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* ── Modal：淡入 + scale 0.98 → 1 ── */
+.xb-modal-enter-active,
+.xb-modal-leave-active {
+  transition: opacity var(--xb-motion-normal) var(--xb-ease);
+}
+.xb-modal-enter-active .xb-modal-box,
+.xb-modal-leave-active .xb-modal-box {
+  transition: transform var(--xb-motion-normal) var(--xb-ease),
+    opacity var(--xb-motion-normal) var(--xb-ease);
+}
+.xb-modal-enter-from,
+.xb-modal-leave-to {
+  opacity: 0;
+}
+.xb-modal-enter-from .xb-modal-box,
+.xb-modal-leave-to .xb-modal-box {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+/* ── Drawer：滑入 ── */
+.xb-drawer-enter-active,
+.xb-drawer-leave-active {
+  transition: opacity var(--xb-motion-slow) var(--xb-ease);
+}
+.xb-drawer-enter-active .xb-drawer-panel,
+.xb-drawer-leave-active .xb-drawer-panel {
+  transition: transform var(--xb-motion-slow) var(--xb-ease);
+}
+.xb-drawer-enter-from,
+.xb-drawer-leave-to {
+  opacity: 0;
+}
+.xb-drawer-enter-from .xb-drawer-panel,
+.xb-drawer-leave-to .xb-drawer-panel {
+  transform: translateX(0);
+}
+/* 右侧 drawer */
+.xb-drawer-right .xb-drawer-panel {
+  transform: translateX(100%);
+}
+.xb-drawer-right.xb-drawer-enter-to .xb-drawer-panel,
+.xb-drawer-right.xb-drawer-leave-from .xb-drawer-panel {
+  transform: translateX(0);
+}
+/* 左侧 drawer */
+.xb-drawer-left .xb-drawer-panel {
+  transform: translateX(-100%);
+}
+.xb-drawer-left.xb-drawer-enter-to .xb-drawer-panel,
+.xb-drawer-left.xb-drawer-leave-from .xb-drawer-panel {
+  transform: translateX(0);
+}
+
+/* ── Toast：slide ── */
+.xb-toast-enter-active {
+  transition: all var(--xb-motion-slow) var(--xb-ease);
+}
+.xb-toast-leave-active {
+  transition: all var(--xb-motion-fast) var(--xb-ease);
+}
+.xb-toast-move {
+  transition: transform var(--xb-motion-normal) var(--xb-ease);
+}
+.xb-toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+.xb-toast-leave-to {
+  opacity: 0;
+  transform: translateX(120%);
+}
+
+/* ── 菜单展开：高度 + 透明度 ── */
+.xb-menu-expand-enter-active,
+.xb-menu-expand-leave-active {
+  transition: max-height var(--xb-motion-normal) var(--xb-ease),
+    opacity var(--xb-motion-fast) var(--xb-ease);
+  overflow: hidden;
+}
+.xb-menu-expand-enter-from,
+.xb-menu-expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.xb-menu-expand-enter-to,
+.xb-menu-expand-leave-from {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+/* ── 页面切换 fade ── */
+.xb-page-enter-active,
+.xb-page-leave-active {
+  transition: opacity var(--xb-motion-fast) var(--xb-ease);
+}
+.xb-page-enter-from {
+  opacity: 0;
+}
+.xb-page-leave-to {
+  opacity: 0;
+}
+
+/* ── 通用旋转（图标箭头） ── */
+.xb-rotate-90 {
+  transform: rotate(90deg);
+  transition: transform var(--xb-motion-normal) var(--xb-ease);
+}
+.xb-rotate-0 {
+  transform: rotate(0deg);
+  transition: transform var(--xb-motion-normal) var(--xb-ease);
+}
+
+/* ── Skeleton 闪烁 ── */
+@keyframes xb-skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.xb-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--xb-bg-hover) 0%,
+    var(--xb-bg-subtle) 50%,
+    var(--xb-bg-hover) 100%
+  );
+  background-size: 200% 100%;
+  animation: xb-skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--xb-radius-sm);
+}
+@keyframes xb-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Spinner 旋转 ── */
+@keyframes xb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.xb-spinner {
+  animation: xb-spin 0.8s linear infinite;
+}
+
+/* ── 页面进入动画 ── */
+@keyframes xb-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 尊重 reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

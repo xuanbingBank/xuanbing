@@ -1,0 +1,45 @@
+/**
+ * @file 自定义主题变量与品牌色定义。
+ *
+ * daisyUI v5 内置 light/dark/business/corporate 等主题，通过 <html data-theme="xxx"> 切换。
+ * 本文件定义项目品牌色（brand）作为 daisyUI 主题的补充。
+ */
+
+/* 品牌主题：在 daisyUI 主题基础上覆盖品牌色 */
+:root,
+[data-theme='light'],
+[data-theme='corporate'] {
+  --brand-primary: #3b82f6;
+  --brand-secondary: #8b5cf6;
+  --brand-accent: #ec4899;
+  --brand-success: #10b981;
+  --brand-warning: #f59e0b;
+  --brand-error: #ef4444;
+}
+
+[data-theme='dark'],
+[data-theme='business'] {
+  --brand-primary: #60a5fa;
+  --brand-secondary: #a78bfa;
+  --brand-accent: #f472b6;
+  --brand-success: #34d399;
+  --brand-warning: #fbbf24;
+  --brand-error: #f87171;
+}
+
+/* 品牌色工具类 */
+.bg-brand-primary {
+  background-color: var(--brand-primary);
+}
+.bg-brand-secondary {
+  background-color: var(--brand-secondary);
+}
+.text-brand-primary {
+  color: var(--brand-primary);
+}
+.text-brand-secondary {
+  color: var(--brand-secondary);
+}
+.border-brand-primary {
+  border-color: var(--brand-primary);
+}

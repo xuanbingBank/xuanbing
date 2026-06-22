@@ -1,0 +1,143 @@
+/**
+ * @file Fluent UI 设计 Token。
+ *
+ * 定义颜色、圆角、阴影、间距、动效等设计变量，作为项目自定义组件的唯一视觉来源。
+ * daisyUI 主题变量仍保留，但 Fluent 组件优先使用 --xb-* token，避免硬编码颜色。
+ */
+
+:root {
+  /* ── 背景色 ── */
+  --xb-bg-app: #f5f5f5;
+  --xb-bg-surface: #ffffff;
+  --xb-bg-subtle: #fafafa;
+  --xb-bg-hover: #f3f4f6;
+  --xb-bg-active: #eff6ff;
+  --xb-bg-disabled: #f5f5f5;
+
+  /* ── 文字色 ── */
+  --xb-text-primary: #242424;
+  --xb-text-secondary: #616161;
+  --xb-text-tertiary: #8a8a8a;
+  --xb-text-disabled: #bdbdbd;
+  --xb-text-on-brand: #ffffff;
+
+  /* ── 边框 ── */
+  --xb-border: #e5e5e5;
+  --xb-border-subtle: #f0f0f0;
+  --xb-border-strong: #d4d4d4;
+
+  /* ── 品牌色 ── */
+  --xb-brand: #2563eb;
+  --xb-brand-hover: #1d4ed8;
+  --xb-brand-active: #1e40af;
+  --xb-brand-subtle: #eff6ff;
+  --xb-brand-subtle-hover: #dbeafe;
+
+  /* ── 语义色 ── */
+  --xb-success: #107c10;
+  --xb-success-subtle: #ecfdf5;
+  --xb-warning: #f59e0b;
+  --xb-warning-subtle: #fffbeb;
+  --xb-error: #d13438;
+  --xb-error-subtle: #fef2f2;
+  --xb-info: #2563eb;
+  --xb-info-subtle: #eff6ff;
+
+  /* ── 圆角 ── */
+  --xb-radius-sm: 6px;
+  --xb-radius-md: 8px;
+  --xb-radius-lg: 12px;
+  --xb-radius-xl: 14px;
+  --xb-radius-pill: 9999px;
+
+  /* ── 阴影（轻阴影） ── */
+  --xb-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --xb-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --xb-shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.14);
+  --xb-shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.18);
+
+  /* ── 间距（4px 基准） ── */
+  --xb-space-1: 4px;
+  --xb-space-2: 8px;
+  --xb-space-3: 12px;
+  --xb-space-4: 16px;
+  --xb-space-5: 20px;
+  --xb-space-6: 24px;
+  --xb-space-8: 32px;
+
+  /* ── 动效 ── */
+  --xb-motion-fast: 120ms;
+  --xb-motion-normal: 180ms;
+  --xb-motion-slow: 220ms;
+  --xb-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ── 字体 ── */
+  --xb-font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei UI',
+    'PingFang SC', 'Noto Sans SC', system-ui, sans-serif;
+
+  /* ── 布局尺寸 ── */
+  --xb-header-height: 48px;
+  --xb-sidebar-width: 260px;
+  --xb-sidebar-collapsed-width: 64px;
+  --xb-sidebar-mobile-width: 280px;
+  --xb-content-padding: 24px;
+  --xb-content-padding-compact: 16px;
+  --xb-content-padding-mobile: 12px;
+
+  /* ── 焦点环 ── */
+  --xb-focus-ring: 0 0 0 2px var(--xb-bg-surface), 0 0 0 4px var(--xb-brand);
+
+  /* ── 层级 ── */
+  --xb-z-sidebar: 30;
+  --xb-z-header: 40;
+  --xb-z-dropdown: 50;
+  --xb-z-popover: 60;
+  --xb-z-overlay: 65;
+  --xb-z-drawer: 66;
+  --xb-z-modal: 70;
+  --xb-z-toast: 80;
+  --xb-z-command-palette: 90;
+}
+
+/* ── 暗色模式覆盖 ── */
+[data-theme='dark'],
+[data-theme='business'] {
+  --xb-bg-app: #1b1b1b;
+  --xb-bg-surface: #242424;
+  --xb-bg-subtle: #202020;
+  --xb-bg-hover: rgba(255, 255, 255, 0.06);
+  --xb-bg-active: rgba(96, 165, 250, 0.14);
+  --xb-bg-disabled: #2a2a2a;
+
+  --xb-text-primary: #f5f5f5;
+  --xb-text-secondary: #c8c8c8;
+  --xb-text-tertiary: #9ca3af;
+  --xb-text-disabled: #525252;
+  --xb-text-on-brand: #ffffff;
+
+  --xb-border: #3a3a3a;
+  --xb-border-subtle: #2f2f2f;
+  --xb-border-strong: #4a4a4a;
+
+  --xb-brand: #60a5fa;
+  --xb-brand-hover: #93c5fd;
+  --xb-brand-active: #bfdbfe;
+  --xb-brand-subtle: rgba(96, 165, 250, 0.14);
+  --xb-brand-subtle-hover: rgba(96, 165, 250, 0.22);
+
+  --xb-success: #4ade80;
+  --xb-success-subtle: rgba(74, 222, 128, 0.14);
+  --xb-warning: #fbbf24;
+  --xb-warning-subtle: rgba(251, 191, 36, 0.14);
+  --xb-error: #f87171;
+  --xb-error-subtle: rgba(248, 113, 113, 0.14);
+  --xb-info: #60a5fa;
+  --xb-info-subtle: rgba(96, 165, 250, 0.14);
+
+  --xb-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --xb-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --xb-shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --xb-shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.6);
+
+  --xb-focus-ring: 0 0 0 2px var(--xb-bg-surface), 0 0 0 4px var(--xb-brand);
+}

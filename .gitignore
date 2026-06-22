@@ -14,7 +14,12 @@ Desktop.ini
 
 # ===== Node.js/Frontend =====
 node_modules/
+.pnpm-cache/
 .pnpm-store/
+dist/
+test/
+.codegraph/
+pnpm-workspace.yaml
 .next/
 .nuxt/
 .vite/
