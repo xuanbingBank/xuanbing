@@ -24,7 +24,41 @@ export const IPC_CHANNELS = {
   windowCloseAll: 'window:closeAll',
   windowCloseByRole: 'window:closeByRole',
   taskStart: 'task:start',
-  taskCancel: 'task:cancel'
+  taskCancel: 'task:cancel',
+
+  /* ───────────────────────── 数据库 ───────────────────────── */
+
+  databaseGetHealth: 'database:getHealth',
+  databaseGetStats: 'database:getStats',
+  databaseBackup: 'database:backup',
+  databaseRestore: 'database:restore',
+  databaseVacuum: 'database:vacuum',
+  databaseClearLogs: 'database:clearLogs',
+
+  /* ───────────────────────── 任务数据持久化 ───────────────────────── */
+
+  taskDataList: 'taskData:list',
+  taskDataGetById: 'taskData:getById',
+  taskDataCreate: 'taskData:create',
+  taskDataUpdate: 'taskData:update',
+  taskDataDelete: 'taskData:delete',
+
+  /* ───────────────────────── 设置 ───────────────────────── */
+
+  settingGet: 'setting:get',
+  settingSet: 'setting:set',
+  settingListByNamespace: 'setting:listByNamespace',
+  settingDelete: 'setting:delete',
+
+  /* ───────────────────────── .xuanbing 文件 ───────────────────────── */
+
+  xuanbingFileOpenDialog: 'xuanbingFile:openDialog',
+  xuanbingFileSaveDialog: 'xuanbingFile:saveDialog',
+  xuanbingFileReadPreview: 'xuanbingFile:readPreview',
+  xuanbingFileValidate: 'xuanbingFile:validate',
+  xuanbingFileExportPackage: 'xuanbingFile:exportPackage',
+  xuanbingFileDryRunImport: 'xuanbingFile:dryRunImport',
+  xuanbingFileImportPackage: 'xuanbingFile:importPackage'
 } as const
 
 /**
@@ -60,7 +94,31 @@ export const IPC_PERMISSIONS = {
   systemWrite: 'system:write',
   taskRun: 'task:run',
   taskCancel: 'task:cancel',
-  devtoolsOpen: 'devtools:open'
+  devtoolsOpen: 'devtools:open',
+
+  /* ───────────────────────── 数据库权限 ───────────────────────── */
+
+  databaseRead: 'database:read',
+  databaseWrite: 'database:write',
+  databaseBackup: 'database:backup',
+  databaseRestore: 'database:restore',
+
+  /* ───────────────────────── 任务数据权限 ───────────────────────── */
+
+  taskDataRead: 'taskData:read',
+  taskDataWrite: 'taskData:write',
+
+  /* ───────────────────────── 设置权限 ───────────────────────── */
+
+  settingRead: 'setting:read',
+  settingWrite: 'setting:write',
+
+  /* ───────────────────────── .xuanbing 文件权限 ───────────────────────── */
+
+  xuanbingFileRead: 'xuanbingFile:read',
+  xuanbingFileWrite: 'xuanbingFile:write',
+  xuanbingFileImport: 'xuanbingFile:import',
+  xuanbingFileExport: 'xuanbingFile:export'
 } as const
 
 /**

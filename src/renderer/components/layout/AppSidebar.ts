@@ -1,87 +1,136 @@
 /**
- * @file 侧边栏菜单组件，根据权限与窗口角色生成菜单树，支持折叠与多级菜单。
+ * @file 侧边栏组件（Fluent 风格，多级菜单）。
+ *
+ * 特性：
+ * - 多级菜单（递归 AppSidebarItem）
+ * - 折叠态（仅图标）
+ * - 手风琴模式（由 menu.store 控制）
+ * - 路由切换自动展开祖先链
+ * - 顶部 Logo 区（可点击回首页）
+ * - 底部操作区（折叠按钮）
+ * - 滚动条 Fluent 风格
  */
 
 import type { ComponentOptions } from '../../vue-global'
-import type { MenuItem } from '../../router/types'
-import { useMenu } from '../../composables/useMenu'
+import { useMenuTree } from '../../composables/useMenuTree'
+import { useSidebar } from '../../composables/useSidebar'
 import { useLayoutStore } from '../../stores/layout.store'
-import { usePermissionStore } from '../../stores/permission.store'
+import { FluentIcon } from '../base/FluentIcon'
+import { AppSidebarItem } from './AppSidebarItem'
 
 export const AppSidebar: ComponentOptions = {
   name: 'AppSidebar',
+  components: { AppSidebarItem, FluentIcon },
+  emits: ['toggle-collapse'],
   setup() {
+    const { menu, expandActiveChain } = useMenuTree()
+    const { collapsed, isMobile, closeMobileDrawer } = useSidebar()
     const layoutStore = useLayoutStore()
-    const permissionStore = usePermissionStore()
-    const { menu, activeMenuPath } = useMenu()
 
-    // 注入路由上下文
+    // 注入路由
     const router = Vue.inject<{ navigate: (path: string) => void }>('router')
     const currentRoute = Vue.inject<{ value: { path: string } | null }>('currentRoute')
 
-    // 菜单树
-    const menuList = menu
-    // 侧栏是否折叠
-    const sidebarCollapsed = Vue.computed(() => layoutStore.state.sidebarCollapsed)
-    // 当前窗口角色
-    const windowRole = Vue.computed(() => permissionStore.state.windowRole)
-    // 当前路径
-    const currentPath = Vue.computed(() => currentRoute?.value?.path ?? '')
+    const currentPath = Vue.computed<string>(() => currentRoute?.value?.path ?? '')
 
-    // 判断菜单项是否激活
-    function isActive(item: MenuItem): boolean {
-      const active = activeMenuPath(currentPath.value)
-      if (active) return active === item.path
-      return currentPath.value === item.path
+    // 路由变化时自动展开祖先链
+    Vue.watch(
+      currentPath,
+      (path: unknown) => {
+        if (typeof path === 'string' && path) expandActiveChain(path)
+      },
+      { immediate: true }
+    )
+
+    // 导航
+    function handleNavigate(path: string): void {
+      if (router) router.navigate(path)
+      // 移动端导航后关闭 drawer
+      if (isMobile.value) closeMobileDrawer()
     }
 
-    // 点击菜单项
-    function handleClick(path: string): void {
-      if (router) {
-        router.navigate(path)
-      }
+    // 回首页
+    function goHome(): void {
+      if (router) router.navigate('/')
+      if (isMobile.value) closeMobileDrawer()
+    }
+
+    // 切换折叠
+    function handleToggleCollapse(): void {
+      layoutStore.toggleSidebar()
     }
 
     return {
-      menuList,
-      sidebarCollapsed,
-      windowRole,
-      currentPath,
-      isActive,
-      handleClick
+      menu,
+      collapsed,
+      isMobile,
+      handleNavigate,
+      goHome,
+      handleToggleCollapse
     }
   },
   template: `
-    <aside class="bg-base-100 border-r border-base-300 h-full flex flex-col">
-      <ul class="menu menu-md w-full p-2 gap-1">
-        <li v-for="item in menuList" :key="item.path">
-          <!-- 有子菜单 -->
-          <template v-if="item.children && item.children.length > 0">
-            <a :class="{ active: isActive(item) }">
-              <span v-if="item.icon" class="text-base">{{ item.icon }}</span>
-              <span v-if="!sidebarCollapsed">{{ item.title }}</span>
-            </a>
-            <ul v-if="!sidebarCollapsed">
-              <li v-for="child in item.children" :key="child.path">
-                <a :class="{ active: isActive(child) }" @click="handleClick(child.path)">
-                  <span v-if="child.icon" class="text-sm">{{ child.icon }}</span>
-                  <span>{{ child.title }}</span>
-                </a>
-              </li>
-            </ul>
-          </template>
-          <!-- 无子菜单 -->
-          <a
-            v-else
-            :class="{ active: isActive(item) }"
-            @click="handleClick(item.path)"
-            :title="sidebarCollapsed ? item.title : ''"
-          >
-            <span v-if="item.icon" class="text-base">{{ item.icon }}</span>
-            <span v-if="!sidebarCollapsed">{{ item.title }}</span>
-          </a>
-        </li>
-      </ul>
+    <aside
+      :class="[
+        'h-full flex flex-col bg-[var(--xb-bg-surface)] border-r border-[var(--xb-border-subtle)] transition-all duration-[var(--xb-motion-normal)] ease-[var(--xb-ease)]',
+        collapsed ? 'w-16' : 'w-60'
+      ]"
+    >
+      <!-- 顶部 Logo 区 -->
+      <div
+        :class="[
+          'flex items-center h-14 shrink-0 border-b border-[var(--xb-border-subtle)]',
+          collapsed ? 'justify-center px-2' : 'px-4 gap-2'
+        ]"
+      >
+        <button
+          type="button"
+          class="flex items-center gap-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--xb-brand)] rounded-[var(--xb-radius-sm)]"
+          @click="goHome"
+          :title="collapsed ? 'All In One' : ''"
+        >
+          <div class="w-7 h-7 rounded-[var(--xb-radius-md)] bg-[var(--xb-brand)] flex items-center justify-center shrink-0">
+            <FluentIcon name="home" :size="16" class="text-white" />
+          </div>
+          <span v-if="!collapsed" class="text-sm font-semibold text-[var(--xb-text-primary)] truncate">All In One</span>
+        </button>
+      </div>
+
+      <!-- 菜单区 -->
+      <nav class="flex-1 overflow-y-auto xb-scroll-y py-2" :class="collapsed ? 'px-2' : 'px-3'">
+        <div class="flex flex-col gap-0.5">
+          <AppSidebarItem
+            v-for="item in menu"
+            :key="item.id || item.path"
+            :item="item"
+            :level="0"
+            :collapsed="collapsed"
+            @navigate="handleNavigate"
+          />
+        </div>
+      </nav>
+
+      <!-- 底部：折叠按钮（仅桌面端） -->
+      <div v-if="!isMobile" class="shrink-0 border-t border-[var(--xb-border-subtle)] p-2">
+        <button
+          type="button"
+          :class="[
+            'w-full flex items-center gap-2.5 rounded-[var(--xb-radius-md)] px-3 py-2 text-sm transition-colors',
+            'text-[var(--xb-text-secondary)] hover:bg-[var(--xb-bg-hover)] hover:text-[var(--xb-text-primary)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--xb-brand)]',
+            collapsed ? 'justify-center px-0' : ''
+          ]"
+          :title="collapsed ? '展开侧栏' : '折叠侧栏'"
+          @click="handleToggleCollapse"
+        >
+          <FluentIcon
+            :name="collapsed ? 'chevronRight' : 'chevronLeft'"
+            :size="16"
+            class="shrink-0"
+          />
+          <span v-if="!collapsed">折叠</span>
+        </button>
+      </div>
     </aside>
   `
 }

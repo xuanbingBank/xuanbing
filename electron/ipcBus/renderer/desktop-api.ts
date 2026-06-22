@@ -303,12 +303,225 @@ export interface DesktopTaskApi {
   onFailed(taskId: string, listener: (payload: TaskFailedPayload) => void): DesktopUnsubscribe
 }
 
+/* ───────────────────────── 数据库管理 API 类型 ───────────────────────── */
+
 /**
- * ���嶥������ API��
+ * 数据库健康报告类型。
+ */
+export type DatabaseHealthOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.databaseGetHealth]>
+
+/**
+ * 数据库统计类型。
+ */
+export type DatabaseStatsOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.databaseGetStats]>
+
+/**
+ * 数据库备份响应类型。
+ */
+export type DatabaseBackupOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.databaseBackup]>
+
+/**
+ * 数据库恢复请求输入类型。
+ */
+export type DatabaseRestoreInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.databaseRestore]>
+
+/**
+ * 数据库恢复响应类型。
+ */
+export type DatabaseRestoreOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.databaseRestore]>
+
+/**
+ * 数据库 VACUUM 响应类型。
+ */
+export type DatabaseVacuumOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.databaseVacuum]>
+
+/**
+ * 数据库清理日志响应类型。
+ */
+export type DatabaseClearLogsOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.databaseClearLogs]>
+
+/**
+ * 数据库管理操作命名空间。
+ */
+export interface DesktopDatabaseApi {
+  getHealth(): Promise<DatabaseHealthOutput>
+  getStats(): Promise<DatabaseStatsOutput>
+  backup(): Promise<DatabaseBackupOutput>
+  restore(input: DatabaseRestoreInput): Promise<DatabaseRestoreOutput>
+  vacuum(): Promise<DatabaseVacuumOutput>
+  clearLogs(olderThanDays?: number): Promise<DatabaseClearLogsOutput>
+}
+
+/* ───────────────────────── 任务数据 API 类型 ───────────────────────── */
+
+/**
+ * 任务数据列表请求输入类型。
+ */
+export type TaskDataListInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.taskDataList]>
+
+/**
+ * 任务数据列表响应类型。
+ */
+export type TaskDataListOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.taskDataList]>
+
+/**
+ * 任务数据项类型。
+ */
+export type TaskDataItem = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.taskDataGetById]>
+
+/**
+ * 任务数据创建请求输入类型。
+ */
+export type TaskDataCreateInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.taskDataCreate]>
+
+/**
+ * 任务数据更新请求输入类型。
+ */
+export type TaskDataUpdateInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.taskDataUpdate]>
+
+/**
+ * 任务数据删除响应类型。
+ */
+export type TaskDataDeleteOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.taskDataDelete]>
+
+/**
+ * 任务数据操作命名空间。
+ */
+export interface DesktopTaskDataApi {
+  list(input?: TaskDataListInput): Promise<TaskDataListOutput>
+  getById(id: string): Promise<TaskDataItem>
+  create(input: TaskDataCreateInput): Promise<TaskDataItem>
+  update(input: TaskDataUpdateInput): Promise<TaskDataItem>
+  delete(id: string): Promise<TaskDataDeleteOutput>
+}
+
+/* ───────────────────────── 设置 API 类型 ───────────────────────── */
+
+/**
+ * 设置获取请求输入类型。
+ */
+export type SettingGetInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.settingGet]>
+
+/**
+ * 设置响应类型。
+ */
+export type SettingItem = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.settingSet]>
+
+/**
+ * 设置写入请求输入类型。
+ */
+export type SettingSetInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.settingSet]>
+
+/**
+ * 设置列表请求输入类型。
+ */
+export type SettingListInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.settingListByNamespace]>
+
+/**
+ * 设置列表响应类型。
+ */
+export type SettingListOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.settingListByNamespace]>
+
+/**
+ * 设置删除响应类型。
+ */
+export type SettingDeleteOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.settingDelete]>
+
+/**
+ * 设置操作命名空间。
+ */
+export interface DesktopSettingApi {
+  get(namespace: string, key: string): Promise<SettingItem | null>
+  set(input: SettingSetInput): Promise<SettingItem>
+  listByNamespace(namespace: string): Promise<SettingListOutput>
+  delete(namespace: string, key: string): Promise<SettingDeleteOutput>
+}
+
+/* ───────────────────────── .xuanbing 文件 API 类型 ───────────────────────── */
+
+/**
+ * .xuanbing 文件引用类型。
+ */
+export type XuanbingFileRef = {
+  token: string
+  displayName: string
+  size: number
+  expiresAt: number
+}
+
+/**
+ * .xuanbing 文件对话框请求输入类型。
+ */
+export type XuanbingFileDialogInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileOpenDialog]>
+
+/**
+ * .xuanbing 文件对话框响应类型。
+ */
+export type XuanbingFileDialogOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileOpenDialog]>
+
+/**
+ * .xuanbing 文件预览响应类型。
+ */
+export type XuanbingFilePreviewOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileReadPreview]>
+
+/**
+ * .xuanbing 文件校验响应类型。
+ */
+export type XuanbingFileValidateOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileValidate]>
+
+/**
+ * .xuanbing 文件导出请求输入类型。
+ */
+export type XuanbingFileExportInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileExportPackage]>
+
+/**
+ * .xuanbing 文件导出响应类型。
+ */
+export type XuanbingFileExportOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileExportPackage]>
+
+/**
+ * .xuanbing dryRun 导入请求输入类型。
+ */
+export type XuanbingFileDryRunImportInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileDryRunImport]>
+
+/**
+ * .xuanbing dryRun 导入响应类型。
+ */
+export type XuanbingFileDryRunImportOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileDryRunImport]>
+
+/**
+ * .xuanbing 正式导入请求输入类型。
+ */
+export type XuanbingFileImportInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileImportPackage]>
+
+/**
+ * .xuanbing 正式导入响应类型。
+ */
+export type XuanbingFileImportOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.xuanbingFileImportPackage]>
+
+/**
+ * .xuanbing 文件操作命名空间。
+ */
+export interface DesktopXuanbingFileApi {
+  openDialog(input?: XuanbingFileDialogInput): Promise<XuanbingFileDialogOutput>
+  saveDialog(input?: XuanbingFileDialogInput): Promise<XuanbingFileDialogOutput>
+  readPreview(fileRef: XuanbingFileRef): Promise<XuanbingFilePreviewOutput>
+  validate(fileRef: XuanbingFileRef): Promise<XuanbingFileValidateOutput>
+  exportPackage(input: XuanbingFileExportInput): Promise<XuanbingFileExportOutput>
+  dryRunImport(input: XuanbingFileDryRunImportInput): Promise<XuanbingFileDryRunImportOutput>
+  importPackage(input: XuanbingFileImportInput): Promise<XuanbingFileImportOutput>
+}
+
+/**
+ * 顶层桌面 API。
  */
 export interface DesktopApi {
   readonly app: DesktopAppApi
   readonly file: DesktopFileApi
   readonly window: DesktopWindowApi
   readonly task: DesktopTaskApi
+  readonly database: DesktopDatabaseApi
+  readonly taskData: DesktopTaskDataApi
+  readonly setting: DesktopSettingApi
+  readonly xuanbingFile: DesktopXuanbingFileApi
 }

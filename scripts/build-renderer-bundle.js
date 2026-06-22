@@ -199,13 +199,19 @@ function readTemplateLiteral(code, startIndex) {
  * @returns {string} render 函数表达式源码。
  */
 function compileVueTemplate(template, moduleId) {
-  const result = vueCompiler.compile(template, {
-    mode: 'function',
-    prefixIdentifiers: true,
-    hoistStatic: false,
-    cacheHandlers: false,
-    comments: false
-  })
+  let result
+  try {
+    result = vueCompiler.compile(template, {
+      mode: 'function',
+      prefixIdentifiers: true,
+      hoistStatic: false,
+      cacheHandlers: false,
+      comments: false
+    })
+  } catch (err) {
+    const loc = err && err.loc ? ` (line ${err.loc.start.line}, col ${err.loc.start.column})` : ''
+    throw new Error(`Failed to compile Vue template in ${moduleId}${loc}: ${err.message}`)
+  }
 
   return `(function () {\n${result.code}\n})()`
 }
@@ -360,9 +366,36 @@ function buildBundle(config) {
 }
 
 /**
+ * 复制数据库 migration SQL 文件到 dist 目录。
+ *
+ * tsc 只编译 .ts 文件，.sql 资源文件需要手动复制。
+ */
+function copyMigrationFiles() {
+  const srcDir = path.join(projectRoot, 'electron', 'database', 'migrations')
+  const destDir = path.join(distRoot, 'electron', 'database', 'migrations')
+
+  if (!fs.existsSync(srcDir)) {
+    return
+  }
+
+  fs.mkdirSync(destDir, { recursive: true })
+
+  const entries = fs.readdirSync(srcDir)
+  for (const entry of entries) {
+    if (entry.endsWith('.sql')) {
+      const srcFile = path.join(srcDir, entry)
+      const destFile = path.join(destDir, entry)
+      fs.copyFileSync(srcFile, destFile)
+    }
+  }
+}
+
+/**
  * 构建全部 Electron 启动 bundle。
  */
 function buildAllBundles() {
+  copyMigrationFiles()
+
   buildBundle({
     name: 'renderer',
     entryPath: path.join(distRoot, 'src', 'renderer.js'),

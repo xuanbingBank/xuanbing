@@ -28,12 +28,13 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: true,
       closeBehavior: 'close',
       devOnly: false,
-      icon: '🏠',
+      icon: 'home',
       menu: true,
       menuOrder: 1,
       breadcrumb: true,
       affixTab: true,
-      closableTab: false
+      closableTab: false,
+      group: 'workbench'
     }
   },
   {
@@ -50,12 +51,15 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: true,
       closeBehavior: 'close',
       devOnly: false,
-      icon: '📊',
+      icon: 'dashboard',
       menu: true,
       menuOrder: 2,
       breadcrumb: true,
       affixTab: false,
-      closableTab: true
+      closableTab: true,
+      group: 'workbench',
+      shortcut: 'Ctrl+D',
+      description: '应用概览与快捷操作'
     }
   },
 
@@ -93,11 +97,13 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: false,
       closeBehavior: 'close',
       devOnly: false,
-      icon: '⚙️',
+      icon: 'settings',
       menu: true,
       menuOrder: 90,
       breadcrumb: true,
-      closableTab: true
+      closableTab: true,
+      group: 'system',
+      description: '应用与个人设置'
     }
   },
   {
@@ -114,12 +120,13 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: false,
       closeBehavior: 'close',
       devOnly: false,
-      icon: '👤',
+      icon: 'profile',
       menu: true,
       menuOrder: 91,
       breadcrumb: true,
       parent: ROUTE_PATHS.SETTINGS,
-      closableTab: true
+      closableTab: true,
+      group: 'system'
     }
   },
   {
@@ -136,12 +143,13 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: false,
       closeBehavior: 'close',
       devOnly: false,
-      icon: '🔒',
+      icon: 'security',
       menu: true,
       menuOrder: 92,
       breadcrumb: true,
       parent: ROUTE_PATHS.SETTINGS,
-      closableTab: true
+      closableTab: true,
+      group: 'system'
     }
   },
 
@@ -160,11 +168,14 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: false,
       closeBehavior: 'hide',
       devOnly: false,
-      icon: '📋',
+      icon: 'task',
       menu: true,
       menuOrder: 50,
       breadcrumb: true,
-      closableTab: true
+      closableTab: true,
+      group: 'workbench',
+      badge: 'new',
+      description: '管理本地任务和运行状态'
     }
   },
   {
@@ -203,11 +214,12 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: false,
       closeBehavior: 'close',
       devOnly: false,
-      icon: 'ℹ️',
+      icon: 'info',
       menu: true,
       menuOrder: 100,
       breadcrumb: true,
-      closableTab: true
+      closableTab: true,
+      group: 'system'
     }
   },
 
@@ -226,11 +238,39 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: true,
       closeBehavior: 'close',
       devOnly: true,
-      icon: '🧪',
+      icon: 'beaker',
       menu: true,
       menuOrder: 999,
       breadcrumb: true,
-      closableTab: true
+      closableTab: true,
+      group: 'system',
+      tag: 'Dev'
+    }
+  },
+
+  /* ── Fluent UI 演示页 ── */
+  {
+    path: '/demo/fluent-ui',
+    name: 'fluentUiDemo',
+    component: 'fluentUiDemo',
+    meta: {
+      title: 'Fluent UI 演示',
+      windowRole: 'main',
+      requiresAuth: false,
+      permissions: [],
+      keepAlive: false,
+      layout: LAYOUTS.BASIC,
+      allowDirectOpen: true,
+      closeBehavior: 'close',
+      devOnly: true,
+      icon: 'sparkle',
+      menu: true,
+      menuOrder: 998,
+      breadcrumb: true,
+      closableTab: true,
+      group: 'system',
+      tag: 'Dev',
+      description: 'Fluent UI 组件体系演示'
     }
   },
 
@@ -269,11 +309,12 @@ export const routes: RouteRecord[] = [
       allowDirectOpen: false,
       closeBehavior: 'close',
       devOnly: false,
-      icon: '📜',
+      icon: 'log',
       menu: true,
       menuOrder: 60,
       breadcrumb: true,
-      closableTab: true
+      closableTab: true,
+      group: 'workbench'
     }
   },
 

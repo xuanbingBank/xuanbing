@@ -1,11 +1,11 @@
 /**
- * @file 自定义滚动条样式，统一全局滚动条外观。
+ * @file 自定义滚动条样式，统一全局滚动条外观（Fluent 风格）。
  */
 
 /* Webkit 浏览器（Chromium/Electron）滚动条 */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -13,31 +13,45 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-base-300, #d1d5db);
-  border-radius: 4px;
+  background-color: var(--xb-border-strong, #d4d4d4);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color var(--xb-motion-fast) var(--xb-ease);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-base-content, #6b7280);
-  opacity: 0.8;
+  background-color: var(--xb-text-tertiary, #8a8a8a);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Firefox 滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-base-300, #d1d5db) transparent;
+  scrollbar-color: var(--xb-border-strong, #d4d4d4) transparent;
 }
 
-/* 禁用水平滚动条闪烁 */
-.scrollbar-thin::-webkit-scrollbar {
+/* 细滚动条（菜单、表格头等紧凑区域） */
+.xb-scrollbar-thin::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+.xb-scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
 
-.scrollbar-none::-webkit-scrollbar {
+/* 隐藏滚动条 */
+.xb-scrollbar-none::-webkit-scrollbar {
   display: none;
 }
-.scrollbar-none {
+.xb-scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

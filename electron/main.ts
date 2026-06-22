@@ -170,4 +170,5 @@ app.on('before-quit', () => {
   ipcRuntime?.taskRegistry.cancelAll()
   ipcRuntime?.bus.dispose()
   ipcRuntime?.newWindowManager.saveAllState()
+  ipcRuntime?.closeDatabase()
 })

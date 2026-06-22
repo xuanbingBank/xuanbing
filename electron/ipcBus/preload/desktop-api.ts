@@ -11,11 +11,23 @@ import {
 import type {
   DesktopApi,
   DesktopAppApi,
+  DesktopDatabaseApi,
   DesktopFileApi,
+  DesktopSettingApi,
   DesktopTaskApi,
+  DesktopTaskDataApi,
   DesktopWindowApi,
+  DesktopXuanbingFileApi,
+  DatabaseRestoreInput,
   FileDialogInput,
+  SettingDeleteOutput,
+  SettingItem,
+  SettingListOutput,
+  SettingSetInput,
   TaskCompletedPayload,
+  TaskDataCreateInput,
+  TaskDataListInput,
+  TaskDataUpdateInput,
   TaskFailedPayload,
   TaskProgressPayload,
   TaskStartInput,
@@ -24,7 +36,11 @@ import type {
   WindowFocusTarget,
   WindowOpenInput,
   WindowRoutePayload,
-  WindowStatePayload
+  WindowStatePayload,
+  XuanbingFileDryRunImportInput,
+  XuanbingFileExportInput,
+  XuanbingFileImportInput,
+  XuanbingFileRef
 } from '../renderer/desktop-api'
 import type { PreloadClient } from './client'
 
@@ -265,6 +281,160 @@ function createTaskApi(client: PreloadClient): DesktopTaskApi {
 }
 
 /**
+ * 构造数据库管理操作命名空间。
+ *
+ * @param client preload 客户端。
+ * @returns 数据库管理操作命名空间。
+ */
+function createDatabaseApi(client: PreloadClient): DesktopDatabaseApi {
+  return Object.freeze({
+    getHealth: () => client.safeInvoke(
+      IPC_CHANNELS.databaseGetHealth,
+      requestContracts[IPC_CHANNELS.databaseGetHealth].outputSchema,
+      {}
+    ),
+    getStats: () => client.safeInvoke(
+      IPC_CHANNELS.databaseGetStats,
+      requestContracts[IPC_CHANNELS.databaseGetStats].outputSchema,
+      {}
+    ),
+    backup: () => client.safeInvoke(
+      IPC_CHANNELS.databaseBackup,
+      requestContracts[IPC_CHANNELS.databaseBackup].outputSchema,
+      {}
+    ),
+    restore: (input: DatabaseRestoreInput) => client.safeInvoke(
+      IPC_CHANNELS.databaseRestore,
+      requestContracts[IPC_CHANNELS.databaseRestore].outputSchema,
+      input
+    ),
+    vacuum: () => client.safeInvoke(
+      IPC_CHANNELS.databaseVacuum,
+      requestContracts[IPC_CHANNELS.databaseVacuum].outputSchema,
+      {}
+    ),
+    clearLogs: (olderThanDays?: number) => client.safeInvoke(
+      IPC_CHANNELS.databaseClearLogs,
+      requestContracts[IPC_CHANNELS.databaseClearLogs].outputSchema,
+      olderThanDays !== undefined ? { olderThanDays } : {}
+    )
+  })
+}
+
+/**
+ * 构造任务数据操作命名空间。
+ *
+ * @param client preload 客户端。
+ * @returns 任务数据操作命名空间。
+ */
+function createTaskDataApi(client: PreloadClient): DesktopTaskDataApi {
+  return Object.freeze({
+    list: (input: TaskDataListInput = { page: undefined, pageSize: undefined, status: undefined, type: undefined }) => client.safeInvoke(
+      IPC_CHANNELS.taskDataList,
+      requestContracts[IPC_CHANNELS.taskDataList].outputSchema,
+      input
+    ),
+    getById: (id: string) => client.safeInvoke(
+      IPC_CHANNELS.taskDataGetById,
+      requestContracts[IPC_CHANNELS.taskDataGetById].outputSchema,
+      { id }
+    ),
+    create: (input: TaskDataCreateInput) => client.safeInvoke(
+      IPC_CHANNELS.taskDataCreate,
+      requestContracts[IPC_CHANNELS.taskDataCreate].outputSchema,
+      input
+    ),
+    update: (input: TaskDataUpdateInput) => client.safeInvoke(
+      IPC_CHANNELS.taskDataUpdate,
+      requestContracts[IPC_CHANNELS.taskDataUpdate].outputSchema,
+      input
+    ),
+    delete: (id: string) => client.safeInvoke(
+      IPC_CHANNELS.taskDataDelete,
+      requestContracts[IPC_CHANNELS.taskDataDelete].outputSchema,
+      { id }
+    )
+  })
+}
+
+/**
+ * 构造设置操作命名空间。
+ *
+ * @param client preload 客户端。
+ * @returns 设置操作命名空间。
+ */
+function createSettingApi(client: PreloadClient): DesktopSettingApi {
+  return Object.freeze({
+    get: (namespace: string, key: string) => client.safeInvoke(
+      IPC_CHANNELS.settingGet,
+      requestContracts[IPC_CHANNELS.settingGet].outputSchema,
+      { namespace, key }
+    ) as Promise<SettingItem | null>,
+    set: (input: SettingSetInput) => client.safeInvoke(
+      IPC_CHANNELS.settingSet,
+      requestContracts[IPC_CHANNELS.settingSet].outputSchema,
+      input
+    ) as Promise<SettingItem>,
+    listByNamespace: (namespace: string) => client.safeInvoke(
+      IPC_CHANNELS.settingListByNamespace,
+      requestContracts[IPC_CHANNELS.settingListByNamespace].outputSchema,
+      { namespace }
+    ) as Promise<SettingListOutput>,
+    delete: (namespace: string, key: string) => client.safeInvoke(
+      IPC_CHANNELS.settingDelete,
+      requestContracts[IPC_CHANNELS.settingDelete].outputSchema,
+      { namespace, key }
+    ) as Promise<SettingDeleteOutput>
+  })
+}
+
+/**
+ * 构造 .xuanbing 文件操作命名空间。
+ *
+ * @param client preload 客户端。
+ * @returns .xuanbing 文件操作命名空间。
+ */
+function createXuanbingFileApi(client: PreloadClient): DesktopXuanbingFileApi {
+  return Object.freeze({
+    openDialog: (input = {}) => client.safeInvoke(
+      IPC_CHANNELS.xuanbingFileOpenDialog,
+      requestContracts[IPC_CHANNELS.xuanbingFileOpenDialog].outputSchema,
+      input
+    ),
+    saveDialog: (input = {}) => client.safeInvoke(
+      IPC_CHANNELS.xuanbingFileSaveDialog,
+      requestContracts[IPC_CHANNELS.xuanbingFileSaveDialog].outputSchema,
+      input
+    ),
+    readPreview: (fileRef: XuanbingFileRef) => client.safeInvoke(
+      IPC_CHANNELS.xuanbingFileReadPreview,
+      requestContracts[IPC_CHANNELS.xuanbingFileReadPreview].outputSchema,
+      { fileRef }
+    ),
+    validate: (fileRef: XuanbingFileRef) => client.safeInvoke(
+      IPC_CHANNELS.xuanbingFileValidate,
+      requestContracts[IPC_CHANNELS.xuanbingFileValidate].outputSchema,
+      { fileRef }
+    ),
+    exportPackage: (input: XuanbingFileExportInput) => client.safeInvoke(
+      IPC_CHANNELS.xuanbingFileExportPackage,
+      requestContracts[IPC_CHANNELS.xuanbingFileExportPackage].outputSchema,
+      input
+    ),
+    dryRunImport: (input: XuanbingFileDryRunImportInput) => client.safeInvoke(
+      IPC_CHANNELS.xuanbingFileDryRunImport,
+      requestContracts[IPC_CHANNELS.xuanbingFileDryRunImport].outputSchema,
+      input
+    ),
+    importPackage: (input: XuanbingFileImportInput) => client.safeInvoke(
+      IPC_CHANNELS.xuanbingFileImportPackage,
+      requestContracts[IPC_CHANNELS.xuanbingFileImportPackage].outputSchema,
+      input
+    )
+  })
+}
+
+/**
  * 构造顶层桌面 API。
  *
  * @param client preload 客户端。
@@ -275,6 +445,10 @@ export function createDesktopApi(client: PreloadClient): DesktopApi {
     app: createAppApi(client),
     file: createFileApi(client),
     window: createWindowApi(client),
-    task: createTaskApi(client)
+    task: createTaskApi(client),
+    database: createDatabaseApi(client),
+    taskData: createTaskDataApi(client),
+    setting: createSettingApi(client),
+    xuanbingFile: createXuanbingFileApi(client)
   })
 }

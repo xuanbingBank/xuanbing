@@ -107,7 +107,10 @@ export const STORAGE_KEYS = {
   SIDEBAR_COLLAPSED: 'app:sidebar-collapsed',
   AUTH_TOKEN: 'app:auth-token',
   AUTH_USER: 'app:auth-user',
-  PERMISSIONS: 'app:permissions'
+  PERMISSIONS: 'app:permissions',
+  MENU_EXPANDED: 'app:menu-expanded',
+  MENU_ACCORDION: 'app:menu-accordion',
+  COMMAND_RECENT: 'app:command-recent'
 } as const
 
 /* ───────────────────────── 应用信息 ───────────────────────── */

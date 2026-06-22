@@ -1,5 +1,5 @@
 /**
- * @file 内容区域组件，渲染当前路由对应的页面组件。
+ * @file 内容区域组件（Fluent 风格），渲染当前路由对应的页面组件。
  */
 
 import type { ComponentOptions } from '../../vue-global'
@@ -39,7 +39,7 @@ export const AppContent: ComponentOptions = {
     }
   },
   template: `
-    <main class="flex-1 overflow-auto p-4 bg-base-200/30">
+    <main class="flex-1 overflow-auto xb-scroll-y bg-[var(--xb-bg-app)]">
       <component :is="pageComponent" v-bind="pageProps" />
     </main>
   `

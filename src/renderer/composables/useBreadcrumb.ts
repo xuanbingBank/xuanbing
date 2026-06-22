@@ -11,7 +11,7 @@ import type { BreadcrumbItem, CurrentRoute } from '../router/types'
  */
 export interface UseBreadcrumbReturn {
   /** 根据当前路由生成面包屑 */
-  breadcrumbs: ReturnType<typeof Vue.computed>
+  breadcrumbs: { value: BreadcrumbItem[] }
 }
 
 /**

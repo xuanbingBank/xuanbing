@@ -31,6 +31,7 @@ import { TaskCenterPage } from './TaskCenterPage'
 import { TaskDetailPage } from './TaskDetailPage'
 import { AboutPage } from './AboutPage'
 import { ComponentDemoPage } from './ComponentDemoPage'
+import { FluentUIDemoPage } from './FluentUIDemoPage'
 import { ForbiddenPage } from './ForbiddenPage'
 import { NotFoundPage } from './NotFoundPage'
 import { ServerErrorPage } from './ServerErrorPage'
@@ -578,6 +579,7 @@ export const PAGES: Record<PageComponentName, ComponentOptions> = {
   logViewer: LogViewerPage,
   modal: ModalPage,
   componentDemo: ComponentDemoPage,
+  fluentUiDemo: FluentUIDemoPage,
   forbidden: ForbiddenPage,
   notFound: NotFoundPage,
   serverError: ServerErrorPage,

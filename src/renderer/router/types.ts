@@ -20,6 +20,7 @@ export type PageComponentName =
   | 'logViewer'
   | 'modal'
   | 'componentDemo'
+  | 'fluentUiDemo'
   | 'forbidden'
   | 'notFound'
   | 'serverError'
@@ -68,6 +69,23 @@ export interface RouteMeta {
   activeMenu?: string
   /** 父级路由路径（用于构建多级菜单） */
   parent?: string
+  /* ── Fluent 菜单扩展字段 ── */
+  /** 菜单分组标识（同 group 的菜单项归为一组显示） */
+  group?: string
+  /** 允许的窗口角色列表（满足其一即显示，未声明则继承 windowRole） */
+  windowRoles?: string[]
+  /** 菜单徽标（数字或文本，如 "new" / 5） */
+  badge?: string | number
+  /** 菜单标签（右侧小标签，如 "Beta"） */
+  tag?: string
+  /** 快捷键显示文本（如 "Ctrl+K"） */
+  shortcut?: string
+  /** 额外的路径匹配规则（命中则高亮当前菜单） */
+  activeMatch?: string[]
+  /** 是否外部链接（新窗口打开） */
+  external?: boolean
+  /** 菜单描述（用于 tooltip / Command Palette） */
+  description?: string
 }
 
 /**
@@ -107,23 +125,60 @@ export interface CurrentRoute {
 }
 
 /**
- * 菜单项（从路由自动生成）。
+ * 菜单项（从路由自动生成或手动传入）。
+ *
+ * 支持多级菜单、分组、权限过滤、windowRole 过滤、badge、tag、shortcut、
+ * activeMenu 高亮、外部链接、禁用、隐藏等。
  */
 export interface MenuItem {
-  /** 路由名称 */
-  name: string
-  /** 路由路径 */
-  path: string
+  /** 唯一标识（默认取路由 name，手动菜单可自定义） */
+  id: string
   /** 菜单标题 */
   title: string
-  /** 图标 */
+  /** 路由路径（叶子节点必填，父级可空） */
+  path?: string
+  /** 路由名称（从路由生成时填充） */
+  name?: string
+  /** 图标（emoji 或图标 key，由图标映射层统一渲染） */
   icon?: string
-  /** 排序权重 */
-  order: number
   /** 子菜单 */
   children?: MenuItem[]
-  /** 高亮路径（用于详情页） */
+  /** 徽标（数字或文本，如 "new" / 5） */
+  badge?: string | number
+  /** 标签（右侧小标签，如 "Beta"） */
+  tag?: string
+  /** 是否禁用 */
+  disabled?: boolean
+  /** 是否隐藏 */
+  hidden?: boolean
+  /** 是否为分隔线 */
+  divider?: boolean
+  /** 分组标识（同 group 的菜单项归为一组） */
+  group?: string
+  /** 排序权重（越小越靠前） */
+  order?: number
+  /** 进入所需权限列表（全部满足） */
+  permissions?: string[]
+  /** 进入所需角色列表（满足其一） */
+  roles?: string[]
+  /** 允许的窗口角色列表（满足其一） */
+  windowRoles?: string[]
+  /** 是否仅开发环境可见 */
+  devOnly?: boolean
+  /** 是否外部链接（新窗口打开） */
+  external?: boolean
+  /** 快捷键显示文本（如 "Ctrl+K"） */
+  shortcut?: string
+  /** 描述文本（用于 tooltip / Command Palette） */
+  description?: string
+  /** 高亮路径（用于详情页高亮父菜单） */
   activeMenu?: string
+  /** 额外的路径匹配规则（命中则高亮当前菜单） */
+  activeMatch?: string[]
+  /** 是否在菜单中显示（默认 true） */
+  menu?: boolean
+  /** 父级路径（用于构建多级菜单） */
+  parent?: string
 }
 
 /**

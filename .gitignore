@@ -1,3 +1,6 @@
 node_modules/
 dist/
 test/
+.codegraph/
+.pnpm-cache/
+pnpm-workspace.yaml

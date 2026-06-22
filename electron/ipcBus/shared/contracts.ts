@@ -5,15 +5,33 @@
 import { DEFAULT_IPC_MAX_PAYLOAD_BYTES, DEFAULT_IPC_TIMEOUT_MS, IPC_CHANNELS, IPC_EVENTS, IPC_PERMISSIONS } from './constants'
 import {
   appInfoResponseSchema,
+  dbBackupResponseSchema,
+  dbClearLogsResponseSchema,
+  dbHealthResponseSchema,
+  dbRestoreRequestSchema,
+  dbRestoreResponseSchema,
+  dbStatsResponseSchema,
+  dbVacuumResponseSchema,
   fileDialogRequestSchema,
   fileDialogResponseSchema,
   getCurrentWindowResponseSchema,
   getInitPayloadResponseSchema,
   openWindowRequestSchema,
   openWindowResponseSchema,
+  settingGetRequestSchema,
+  settingItemSchema,
+  settingListRequestSchema,
+  settingListResponseSchema,
+  settingSetRequestSchema,
   taskCancelRequestSchema,
   taskCancelResponseSchema,
   taskCompletedEventSchema,
+  taskDataByIdRequestSchema,
+  taskDataCreateRequestSchema,
+  taskDataItemSchema,
+  taskDataListRequestSchema,
+  taskDataListResponseSchema,
+  taskDataUpdateRequestSchema,
   taskFailedEventSchema,
   taskProgressEventSchema,
   taskStartRequestSchema,
@@ -28,7 +46,17 @@ import {
   windowRouteChangedEventSchema,
   windowSetTitleIpcRequestSchema,
   windowSetTitleResponseSchema,
-  windowStateChangedEventSchema
+  windowStateChangedEventSchema,
+  xuanbingFileDialogRequestSchema,
+  xuanbingFileDialogResponseSchema,
+  xuanbingFileDryRunImportRequestSchema,
+  xuanbingFileDryRunImportResponseSchema,
+  xuanbingFileExportRequestSchema,
+  xuanbingFileExportResponseSchema,
+  xuanbingFileImportRequestSchema,
+  xuanbingFileImportResponseSchema,
+  xuanbingFilePreviewResponseSchema,
+  xuanbingFileValidateResponseSchema
 } from './schemas'
 import { z } from './zod'
 import type { EventContract, EventContractMap, IpcEventDirection, IpcPermission, IpcRequestChannel, RequestContract, RequestContractMap } from './types'
@@ -274,6 +302,229 @@ export const requestContracts = {
     outputSchema: taskCancelResponseSchema,
     timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+
+  /* ───────────────────────── 数据库 ───────────────────────── */
+
+  [IPC_CHANNELS.databaseGetHealth]: defineRequestContract({
+    channel: IPC_CHANNELS.databaseGetHealth,
+    description: '获取 SQLite 数据库健康报告。',
+    permission: IPC_PERMISSIONS.databaseRead,
+    inputSchema: createEmptyObjectSchema(),
+    outputSchema: dbHealthResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.databaseGetStats]: defineRequestContract({
+    channel: IPC_CHANNELS.databaseGetStats,
+    description: '获取 SQLite 各表行数统计。',
+    permission: IPC_PERMISSIONS.databaseRead,
+    inputSchema: createEmptyObjectSchema(),
+    outputSchema: dbStatsResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.databaseBackup]: defineRequestContract({
+    channel: IPC_CHANNELS.databaseBackup,
+    description: '手动触发 SQLite 备份。',
+    permission: IPC_PERMISSIONS.databaseBackup,
+    inputSchema: createEmptyObjectSchema(),
+    outputSchema: dbBackupResponseSchema,
+    timeoutMs: 60_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.databaseRestore]: defineRequestContract({
+    channel: IPC_CHANNELS.databaseRestore,
+    description: '从备份恢复 SQLite 数据库（需要二次确认）。',
+    permission: IPC_PERMISSIONS.databaseRestore,
+    inputSchema: dbRestoreRequestSchema,
+    outputSchema: dbRestoreResponseSchema,
+    timeoutMs: 120_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.databaseVacuum]: defineRequestContract({
+    channel: IPC_CHANNELS.databaseVacuum,
+    description: '对 SQLite 执行 VACUUM。',
+    permission: IPC_PERMISSIONS.databaseWrite,
+    inputSchema: createEmptyObjectSchema(),
+    outputSchema: dbVacuumResponseSchema,
+    timeoutMs: 120_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.databaseClearLogs]: defineRequestContract({
+    channel: IPC_CHANNELS.databaseClearLogs,
+    description: '清理 app_logs 与 audit_logs 旧数据。',
+    permission: IPC_PERMISSIONS.databaseWrite,
+    inputSchema: z.object({ olderThanDays: z.number({ integer: true, min: 1 }).optional() }) as ZodSchema<{ olderThanDays?: number }>,
+    outputSchema: dbClearLogsResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+
+  /* ───────────────────────── 任务数据持久化 ───────────────────────── */
+
+  [IPC_CHANNELS.taskDataList]: defineRequestContract({
+    channel: IPC_CHANNELS.taskDataList,
+    description: '分页查询任务数据列表。',
+    permission: IPC_PERMISSIONS.taskDataRead,
+    inputSchema: taskDataListRequestSchema,
+    outputSchema: taskDataListResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.taskDataGetById]: defineRequestContract({
+    channel: IPC_CHANNELS.taskDataGetById,
+    description: '按 ID 查询任务数据详情（含事件）。',
+    permission: IPC_PERMISSIONS.taskDataRead,
+    inputSchema: taskDataByIdRequestSchema,
+    outputSchema: taskDataItemSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.taskDataCreate]: defineRequestContract({
+    channel: IPC_CHANNELS.taskDataCreate,
+    description: '创建任务数据记录。',
+    permission: IPC_PERMISSIONS.taskDataWrite,
+    inputSchema: taskDataCreateRequestSchema,
+    outputSchema: taskDataItemSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: 256 * 1024,
+    audit: true
+  }),
+  [IPC_CHANNELS.taskDataUpdate]: defineRequestContract({
+    channel: IPC_CHANNELS.taskDataUpdate,
+    description: '更新任务数据状态、进度、输出。',
+    permission: IPC_PERMISSIONS.taskDataWrite,
+    inputSchema: taskDataUpdateRequestSchema,
+    outputSchema: taskDataItemSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: 256 * 1024,
+    audit: true
+  }),
+  [IPC_CHANNELS.taskDataDelete]: defineRequestContract({
+    channel: IPC_CHANNELS.taskDataDelete,
+    description: '按 ID 删除任务数据。',
+    permission: IPC_PERMISSIONS.taskDataWrite,
+    inputSchema: taskDataByIdRequestSchema,
+    outputSchema: z.object({ deleted: z.boolean() }) as ZodSchema<{ deleted: boolean }>,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+
+  /* ───────────────────────── 设置 ───────────────────────── */
+
+  [IPC_CHANNELS.settingGet]: defineRequestContract({
+    channel: IPC_CHANNELS.settingGet,
+    description: '按 namespace+key 获取设置项。',
+    permission: IPC_PERMISSIONS.settingRead,
+    inputSchema: settingGetRequestSchema,
+    outputSchema: settingItemSchema.nullable() as ZodSchema<unknown>,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.settingSet]: defineRequestContract({
+    channel: IPC_CHANNELS.settingSet,
+    description: '写入或更新设置项。',
+    permission: IPC_PERMISSIONS.settingWrite,
+    inputSchema: settingSetRequestSchema,
+    outputSchema: settingItemSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: 64 * 1024,
+    audit: true
+  }),
+  [IPC_CHANNELS.settingListByNamespace]: defineRequestContract({
+    channel: IPC_CHANNELS.settingListByNamespace,
+    description: '列出指定 namespace 下的全部设置项。',
+    permission: IPC_PERMISSIONS.settingRead,
+    inputSchema: settingListRequestSchema,
+    outputSchema: settingListResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.settingDelete]: defineRequestContract({
+    channel: IPC_CHANNELS.settingDelete,
+    description: '按 namespace+key 删除设置项。',
+    permission: IPC_PERMISSIONS.settingWrite,
+    inputSchema: settingGetRequestSchema,
+    outputSchema: z.object({ deleted: z.boolean() }) as ZodSchema<{ deleted: boolean }>,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+
+  /* ───────────────────────── .xuanbing 文件 ───────────────────────── */
+
+  [IPC_CHANNELS.xuanbingFileOpenDialog]: defineRequestContract({
+    channel: IPC_CHANNELS.xuanbingFileOpenDialog,
+    description: '打开 .xuanbing 文件选择对话框，返回 fileRef。',
+    permission: IPC_PERMISSIONS.xuanbingFileRead,
+    inputSchema: xuanbingFileDialogRequestSchema,
+    outputSchema: xuanbingFileDialogResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.xuanbingFileSaveDialog]: defineRequestContract({
+    channel: IPC_CHANNELS.xuanbingFileSaveDialog,
+    description: '打开 .xuanbing 文件保存对话框，返回 fileRef。',
+    permission: IPC_PERMISSIONS.xuanbingFileWrite,
+    inputSchema: xuanbingFileDialogRequestSchema,
+    outputSchema: xuanbingFileDialogResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.xuanbingFileReadPreview]: defineRequestContract({
+    channel: IPC_CHANNELS.xuanbingFileReadPreview,
+    description: '读取 .xuanbing 文件预览（不返回 payload）。',
+    permission: IPC_PERMISSIONS.xuanbingFileRead,
+    inputSchema: z.object({ fileRef: z.unknown() }) as ZodSchema<{ fileRef: unknown }>,
+    outputSchema: xuanbingFilePreviewResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.xuanbingFileValidate]: defineRequestContract({
+    channel: IPC_CHANNELS.xuanbingFileValidate,
+    description: '校验 .xuanbing 文件合法性。',
+    permission: IPC_PERMISSIONS.xuanbingFileRead,
+    inputSchema: z.object({ fileRef: z.unknown() }) as ZodSchema<{ fileRef: unknown }>,
+    outputSchema: xuanbingFileValidateResponseSchema,
+    timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
+  }),
+  [IPC_CHANNELS.xuanbingFileExportPackage]: defineRequestContract({
+    channel: IPC_CHANNELS.xuanbingFileExportPackage,
+    description: '导出 .xuanbing 文件包。',
+    permission: IPC_PERMISSIONS.xuanbingFileExport,
+    inputSchema: xuanbingFileExportRequestSchema,
+    outputSchema: xuanbingFileExportResponseSchema,
+    timeoutMs: 60_000,
+    maxPayloadBytes: 16 * 1024 * 1024,
+    audit: true
+  }),
+  [IPC_CHANNELS.xuanbingFileDryRunImport]: defineRequestContract({
+    channel: IPC_CHANNELS.xuanbingFileDryRunImport,
+    description: 'dryRun 导入 .xuanbing 文件，返回导入计划。',
+    permission: IPC_PERMISSIONS.xuanbingFileRead,
+    inputSchema: xuanbingFileDryRunImportRequestSchema,
+    outputSchema: xuanbingFileDryRunImportResponseSchema,
+    timeoutMs: 60_000,
+    maxPayloadBytes: 16 * 1024 * 1024
+  }),
+  [IPC_CHANNELS.xuanbingFileImportPackage]: defineRequestContract({
+    channel: IPC_CHANNELS.xuanbingFileImportPackage,
+    description: '正式导入 .xuanbing 文件，事务执行。',
+    permission: IPC_PERMISSIONS.xuanbingFileImport,
+    inputSchema: xuanbingFileImportRequestSchema,
+    outputSchema: xuanbingFileImportResponseSchema,
+    timeoutMs: 120_000,
+    maxPayloadBytes: 16 * 1024 * 1024,
     audit: true
   })
 } as const satisfies RequestContractMap

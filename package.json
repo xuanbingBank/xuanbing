@@ -1,30 +1,35 @@
 {
-    "name":  "all-in-one",
-    "version":  "1.0.0",
-    "description":  "",
-    "main":  "dist/electron/main.js",
-    "scripts":  {
-                    "typecheck":  "tsc --noEmit",
-                    "build":  "tsc \u0026\u0026 node scripts/build-renderer-bundle.js",
-                    "start":  "tsc \u0026\u0026 node scripts/build-renderer-bundle.js \u0026\u0026 electron .",
-                    "test":  "tsc \u0026\u0026 node scripts/build-renderer-bundle.js \u0026\u0026 node --test test/*.test.js test/ipc/*.test.js test/windows/*.test.js"
-                },
-    "keywords":  [
-
-                 ],
-    "author":  "",
-    "license":  "ISC",
-    "packageManager":  "pnpm@10.29.3",
-    "dependencies":  {
-                         "daisyui":  "^5.5.23",
-                         "electron":  "^42.4.1",
-                         "tailwindcss":  "^4.3.1",
-                         "typescript":  "^6.0.3",
-                         "vue":  "^3.5.38",
-                         "vuex":  "^4.1.0",
-                         "zod":  "^4.1.12"
-                     },
-    "devDependencies":  {
-                            "@types/node":  "^26.0.0"
-                        }
+    "name": "all-in-one",
+    "version": "1.0.0",
+    "description": "",
+    "main": "dist/electron/main.js",
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "build": "tsc && node scripts/build-renderer-bundle.js",
+        "rebuild:native:electron": "node scripts/rebuild-native.js electron",
+        "rebuild:native:node": "node scripts/rebuild-native.js node",
+        "start": "pnpm run rebuild:native:electron && tsc && node scripts/build-renderer-bundle.js && electron .",
+        "test": "pnpm run rebuild:native:node && tsc && node scripts/build-renderer-bundle.js && node --test scripts/*.test.js test/*.test.js test/ipc/*.test.js test/windows/*.test.js test/database/*.test.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "packageManager": "pnpm@10.29.3",
+    "dependencies": {
+        "better-sqlite3": "^12.11.1",
+        "daisyui": "^5.5.23",
+        "drizzle-orm": "^0.45.2",
+        "electron": "^42.4.1",
+        "tailwindcss": "^4.3.1",
+        "typescript": "^6.0.3",
+        "vue": "^3.5.38",
+        "vuex": "^4.1.0",
+        "zod": "^4.1.12"
+    },
+    "devDependencies": {
+        "@electron/rebuild": "^4.0.4",
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/node": "^26.0.0",
+        "drizzle-kit": "^0.31.10"
+    }
 }

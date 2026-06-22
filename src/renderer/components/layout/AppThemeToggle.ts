@@ -1,29 +1,41 @@
 /**
- * @file 主题切换组件，支持主题选择与深浅色快捷切换。
+ * @file 主题切换组件（Fluent 风格），支持主题选择与深浅色快捷切换。
  */
 
 import type { ComponentOptions } from '../../vue-global'
 import { useThemeStore } from '../../stores/theme.store'
 import type { ThemeName } from '../../constants'
+import { FluentDropdown } from '../base/FluentDropdown'
+import type { FluentDropdownItem } from '../base/FluentDropdown'
+import { FluentIconButton } from '../base/FluentIconButton'
 
 export const AppThemeToggle: ComponentOptions = {
   name: 'AppThemeToggle',
+  components: { FluentDropdown, FluentIconButton },
   setup() {
     const themeStore = useThemeStore()
 
-    // 当前主题
-    const currentTheme = themeStore.currentTheme
-    // 是否深色
-    const isDark = themeStore.isDark
-    // 可用主题列表
+    const currentTheme = themeStore.currentTheme as { value: ThemeName }
+    const isDark = themeStore.isDark as { value: boolean }
     const availableThemes = themeStore.availableThemes
 
-    // 设置主题
+    /** 下拉菜单项 */
+    const menuItems = Vue.computed<FluentDropdownItem[]>(() =>
+      availableThemes.map((theme: { value: ThemeName; label: string }) => ({
+        id: theme.value,
+        title: theme.label,
+        icon: theme.value === currentTheme.value ? 'check' : ''
+      }))
+    )
+
     function setTheme(value: string): void {
       themeStore.setTheme(value as ThemeName)
     }
 
-    // 快捷切换深浅色
+    function handleSelect(item: FluentDropdownItem): void {
+      setTheme(item.id)
+    }
+
     function toggleDark(): void {
       themeStore.toggleDark()
     }
@@ -31,21 +43,18 @@ export const AppThemeToggle: ComponentOptions = {
     return {
       currentTheme,
       isDark,
-      availableThemes,
-      setTheme,
+      menuItems,
+      handleSelect,
       toggleDark
     }
   },
   template: `
-    <div class="dropdown dropdown-end">
-      <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
-        {{ isDark ? '🌙' : '☀️' }}
-      </div>
-      <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-40 p-2 shadow-lg border border-base-300">
-        <li v-for="theme in availableThemes" :key="theme.value">
-          <a @click="setTheme(theme.value)" :class="{ active: theme.value === currentTheme }">{{ theme.label }}</a>
-        </li>
-      </ul>
-    </div>
+    <FluentDropdown :items="menuItems" placement="bottom-end" @select="handleSelect">
+      <FluentIconButton
+        :icon="isDark ? 'moon' : 'sun'"
+        size="medium"
+        :tooltip="'切换主题'"
+      />
+    </FluentDropdown>
   `
 }

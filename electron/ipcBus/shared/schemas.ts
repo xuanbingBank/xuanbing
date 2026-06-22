@@ -256,6 +256,353 @@ export const windowFocusChangedEventSchema = z.object({
   focused: z.boolean()
 })
 
+/* ───────────────────────── 数据库 schemas ───────────────────────── */
+
+/**
+ * 数据库健康报告模型。
+ */
+export const dbHealthResponseSchema = z.object({
+  healthy: z.boolean(),
+  dbExists: z.boolean(),
+  writable: z.boolean(),
+  pragmaOk: z.boolean(),
+  pragmaIssues: z.array(z.string()),
+  migrationLatest: z.boolean(),
+  pendingMigrations: z.boolean(),
+  schemaVersion: z.number(),
+  expectedSchemaVersion: z.number(),
+  walEnabled: z.boolean(),
+  dbFileSize: z.number(),
+  latestBackupTime: z.string().nullable(),
+  integrityCheck: z.string(),
+  issues: z.array(z.string()),
+  checkedAt: z.string({ minLength: 1 })
+})
+
+/**
+ * 数据库统计响应模型。
+ */
+export const dbStatsResponseSchema = z.object({
+  app_settings: z.number(),
+  window_states: z.number(),
+  tasks: z.number(),
+  task_events: z.number(),
+  app_logs: z.number(),
+  audit_logs: z.number(),
+  file_assets: z.number(),
+  sync_outbox: z.number(),
+  sync_inbox: z.number()
+})
+
+/**
+ * 数据库备份响应模型。
+ */
+export const dbBackupResponseSchema = z.object({
+  backupPath: z.string({ minLength: 1 }),
+  backupName: z.string({ minLength: 1 }),
+  size: z.number({ min: 0 }),
+  sha256: z.string({ minLength: 1 }),
+  createdAt: z.string({ minLength: 1 })
+})
+
+/**
+ * 数据库恢复请求模型。
+ */
+export const dbRestoreRequestSchema = z.object({
+  backupPath: z.string({ minLength: 1 }),
+  confirm: z.boolean()
+})
+
+/**
+ * 数据库恢复响应模型。
+ */
+export const dbRestoreResponseSchema = z.object({
+  success: z.boolean(),
+  restoredFrom: z.string({ minLength: 1 }),
+  preRestoreBackupPath: z.string().nullable(),
+  healthReport: z.unknown().nullable(),
+  restoredAt: z.string({ minLength: 1 })
+})
+
+/**
+ * 数据库 vacuum 响应模型。
+ */
+export const dbVacuumResponseSchema = z.object({
+  success: z.boolean()
+})
+
+/**
+ * 数据库清理日志响应模型。
+ */
+export const dbClearLogsResponseSchema = z.object({
+  deleted: z.number({ min: 0 })
+})
+
+/* ───────────────────────── 任务数据 schemas ───────────────────────── */
+
+/**
+ * 任务数据列表请求模型。
+ */
+export const taskDataListRequestSchema = z.object({
+  page: z.number({ integer: true, min: 1 }).optional(),
+  pageSize: z.number({ integer: true, min: 1 }).optional(),
+  status: z.string().optional(),
+  type: z.string().optional()
+})
+
+/**
+ * 任务数据项模型。
+ */
+export const taskDataItemSchema = z.object({
+  id: z.string({ minLength: 1 }),
+  type: z.string({ minLength: 1 }),
+  title: z.string({ minLength: 1 }),
+  status: z.string({ minLength: 1 }),
+  progress: z.number({ min: 0 }),
+  input: z.unknown(),
+  output: z.unknown(),
+  error: z.string().nullable(),
+  startedAt: z.string().nullable(),
+  finishedAt: z.string().nullable(),
+  canceledAt: z.string().nullable(),
+  createdAt: z.string({ minLength: 1 }),
+  updatedAt: z.string({ minLength: 1 })
+})
+
+/**
+ * 任务数据列表响应模型。
+ */
+export const taskDataListResponseSchema = z.object({
+  items: z.array(taskDataItemSchema),
+  total: z.number({ min: 0 }),
+  page: z.number({ min: 1 }),
+  pageSize: z.number({ min: 1 }),
+  totalPages: z.number({ min: 0 }),
+  hasMore: z.boolean()
+})
+
+/**
+ * 任务数据创建请求模型。
+ */
+export const taskDataCreateRequestSchema = z.object({
+  id: z.string().optional(),
+  type: z.string({ minLength: 1 }),
+  title: z.string({ minLength: 1, maxLength: 256 }),
+  status: z.string().optional(),
+  progress: z.number({ min: 0, max: 100 }).optional(),
+  input: z.unknown().optional()
+})
+
+/**
+ * 任务数据更新请求模型。
+ */
+export const taskDataUpdateRequestSchema = z.object({
+  id: z.string({ minLength: 1 }),
+  status: z.string().optional(),
+  progress: z.number({ min: 0, max: 100 }).optional(),
+  output: z.unknown().optional(),
+  error: z.string().nullable().optional()
+})
+
+/**
+ * 任务数据 ID 请求模型。
+ */
+export const taskDataByIdRequestSchema = z.object({
+  id: z.string({ minLength: 1 })
+})
+
+/* ───────────────────────── 设置 schemas ───────────────────────── */
+
+/**
+ * 设置获取请求模型。
+ */
+export const settingGetRequestSchema = z.object({
+  namespace: z.string({ minLength: 1 }),
+  key: z.string({ minLength: 1 })
+})
+
+/**
+ * 设置设置请求模型。
+ */
+export const settingSetRequestSchema = z.object({
+  namespace: z.string({ minLength: 1 }),
+  key: z.string({ minLength: 1 }),
+  value: z.unknown(),
+  valueType: z.string().optional(),
+  description: z.string().optional()
+})
+
+/**
+ * 设置列表请求模型。
+ */
+export const settingListRequestSchema = z.object({
+  namespace: z.string({ minLength: 1 })
+})
+
+/**
+ * 设置项模型。
+ */
+export const settingItemSchema = z.object({
+  id: z.string({ minLength: 1 }),
+  namespace: z.string({ minLength: 1 }),
+  key: z.string({ minLength: 1 }),
+  value: z.unknown(),
+  valueType: z.string({ minLength: 1 }),
+  description: z.string(),
+  isSystem: z.boolean(),
+  createdAt: z.string({ minLength: 1 }),
+  updatedAt: z.string({ minLength: 1 })
+})
+
+/**
+ * 设置列表响应模型。
+ */
+export const settingListResponseSchema = z.array(settingItemSchema)
+
+/* ───────────────────────── .xuanbing 文件 schemas ───────────────────────── */
+
+/**
+ * 文件引用模型。
+ */
+export const xuanbingFileRefSchema = z.object({
+  token: z.string({ minLength: 1 }),
+  displayName: z.string({ minLength: 1 }),
+  size: z.number({ min: 0 }),
+  expiresAt: z.number({ min: 0 })
+})
+
+/**
+ * 文件对话框请求模型。
+ */
+export const xuanbingFileDialogRequestSchema = z.object({
+  title: z.string().optional(),
+  defaultPath: z.string().optional()
+})
+
+/**
+ * 文件对话框响应模型。
+ */
+export const xuanbingFileDialogResponseSchema = z.object({
+  canceled: z.boolean(),
+  fileRef: xuanbingFileRefSchema.nullable()
+})
+
+/**
+ * 文件读取预览响应模型。
+ */
+export const xuanbingFilePreviewResponseSchema = z.object({
+  fileRef: xuanbingFileRefSchema,
+  fileType: z.string({ minLength: 1 }),
+  formatVersion: z.number({ min: 1 }),
+  schemaVersion: z.number({ min: 1 }),
+  appVersion: z.string({ minLength: 1 }),
+  metadata: z.object({
+    name: z.string(),
+    description: z.string(),
+    author: z.string(),
+    tags: z.array(z.string())
+  }),
+  createdAt: z.string({ minLength: 1 }),
+  updatedAt: z.string({ minLength: 1 }),
+  checksum: z.string({ minLength: 1 }),
+  payloadSize: z.number({ min: 0 }),
+  valid: z.boolean()
+})
+
+/**
+ * 文件校验响应模型。
+ */
+export const xuanbingFileValidateResponseSchema = z.object({
+  valid: z.boolean(),
+  errors: z.array(z.string())
+})
+
+/**
+ * 文件导出请求模型。
+ */
+export const xuanbingFileExportRequestSchema = z.object({
+  fileRef: xuanbingFileRefSchema,
+  type: z.string({ minLength: 1 }),
+  metadata: z.object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    author: z.string().optional(),
+    tags: z.array(z.string()).optional()
+  }).optional(),
+  redact: z.boolean().optional()
+})
+
+/**
+ * 文件导出响应模型。
+ */
+export const xuanbingFileExportResponseSchema = z.object({
+  fileRef: xuanbingFileRefSchema,
+  fileType: z.string({ minLength: 1 }),
+  size: z.number({ min: 0 }),
+  checksum: z.string({ minLength: 1 }),
+  exportedAt: z.string({ minLength: 1 })
+})
+
+/**
+ * dryRun 导入请求模型。
+ */
+export const xuanbingFileDryRunImportRequestSchema = z.object({
+  fileRef: xuanbingFileRefSchema,
+  conflictStrategy: z.string().optional()
+})
+
+/**
+ * 导入计划项模型。
+ */
+export const importPlanItemSchema = z.object({
+  key: z.string({ minLength: 1 }),
+  action: z.string({ minLength: 1 }),
+  reason: z.string().optional(),
+  existingId: z.string().optional()
+})
+
+/**
+ * dryRun 导入响应模型。
+ */
+export const xuanbingFileDryRunImportResponseSchema = z.object({
+  fileRef: xuanbingFileRefSchema,
+  fileType: z.string({ minLength: 1 }),
+  schemaVersion: z.number({ min: 1 }),
+  items: z.array(importPlanItemSchema),
+  summary: z.object({
+    create: z.number({ min: 0 }),
+    update: z.number({ min: 0 }),
+    skip: z.number({ min: 0 }),
+    conflict: z.number({ min: 0 }),
+    error: z.number({ min: 0 }),
+    total: z.number({ min: 0 })
+  }),
+  conflictStrategy: z.string({ minLength: 1 })
+})
+
+/**
+ * 正式导入请求模型。
+ */
+export const xuanbingFileImportRequestSchema = z.object({
+  fileRef: xuanbingFileRefSchema,
+  plan: xuanbingFileDryRunImportResponseSchema
+})
+
+/**
+ * 正式导入响应模型。
+ */
+export const xuanbingFileImportResponseSchema = z.object({
+  success: z.boolean(),
+  imported: z.number({ min: 0 }),
+  skipped: z.number({ min: 0 }),
+  errors: z.array(z.object({
+    key: z.string({ minLength: 1 }),
+    message: z.string({ minLength: 1 })
+  })),
+  rolledBack: z.boolean(),
+  importedAt: z.string({ minLength: 1 })
+})
+
 /**
  * 为成功数据模型创建统一的包装模型。
  *

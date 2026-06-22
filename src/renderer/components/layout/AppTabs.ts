@@ -1,14 +1,19 @@
 /**
- * @file 标签页组件，支持多标签切换、关闭与右键菜单。
+ * @file 标签页组件（Fluent 风格），支持多标签切换、关闭与右键菜单。
  */
 
 import type { ComponentOptions } from '../../vue-global'
 import { useTabStore } from '../../stores/tab.store'
+import { useUiStore } from '../../stores/ui.store'
+import type { ContextMenuItem } from '../../stores/ui.store'
+import { FluentIcon } from '../base/FluentIcon'
 
 export const AppTabs: ComponentOptions = {
   name: 'AppTabs',
+  components: { FluentIcon },
   setup() {
     const tabStore = useTabStore()
+    const uiStore = useUiStore()
     // 注入路由器
     const router = Vue.inject<{ navigate: (path: string) => void }>('router')
 
@@ -16,12 +21,6 @@ export const AppTabs: ComponentOptions = {
     const tabs = Vue.computed(() => tabStore.state.tabs)
     // 当前激活标签路径
     const activePath = Vue.computed(() => tabStore.state.activePath)
-
-    // 右键菜单状态
-    const contextMenuVisible = Vue.ref(false)
-    const contextMenuX = Vue.ref(0)
-    const contextMenuY = Vue.ref(0)
-    const contextMenuPath = Vue.ref('')
 
     // 导航到指定路径
     function navigate(path: string): void {
@@ -53,90 +52,52 @@ export const AppTabs: ComponentOptions = {
       }
     }
 
-    // 显示右键菜单
+    // 右键菜单
     function showContextMenu(event: MouseEvent, path: string): void {
-      contextMenuX.value = event.clientX
-      contextMenuY.value = event.clientY
-      contextMenuPath.value = path
-      contextMenuVisible.value = true
+      event.preventDefault()
+      const items: ContextMenuItem[] = [
+        { id: 'close-current', title: '关闭当前', icon: 'close', action: () => closeTab(path) },
+        { id: 'close-others', title: '关闭其他', icon: 'filter', action: () => closeOthers(path) },
+        { id: 'close-all', title: '关闭全部', icon: 'close', action: () => closeAll() }
+      ]
+      uiStore.showContextMenu(event.clientX, event.clientY, items)
     }
-
-    // 隐藏右键菜单
-    function hideContextMenu(): void {
-      contextMenuVisible.value = false
-    }
-
-    // 右键菜单：关闭当前
-    function handleCloseCurrent(): void {
-      closeTab(contextMenuPath.value)
-      hideContextMenu()
-    }
-
-    // 右键菜单：关闭其他
-    function handleCloseOthers(): void {
-      closeOthers(contextMenuPath.value)
-      hideContextMenu()
-    }
-
-    // 右键菜单：关闭全部
-    function handleCloseAll(): void {
-      closeAll()
-      hideContextMenu()
-    }
-
-    // 点击外部关闭右键菜单
-    Vue.onMounted(() => {
-      window.addEventListener('click', hideContextMenu)
-    })
-
-    Vue.onBeforeUnmount(() => {
-      window.removeEventListener('click', hideContextMenu)
-    })
 
     return {
       tabs,
       activePath,
-      contextMenuVisible,
-      contextMenuX,
-      contextMenuY,
       navigate,
       closeTab,
-      showContextMenu,
-      handleCloseCurrent,
-      handleCloseOthers,
-      handleCloseAll
+      showContextMenu
     }
   },
   template: `
-    <div class="tabs-container border-b border-base-300 bg-base-100 flex items-center gap-1 px-2 overflow-x-auto scrollbar-thin">
+    <div
+      v-if="tabs.length > 0"
+      class="flex items-center gap-1 px-2 h-9 bg-[var(--xb-bg-surface)] border-b border-[var(--xb-border-subtle)] overflow-x-auto xb-scroll-x shrink-0"
+    >
       <div
         v-for="tab in tabs"
         :key="tab.path"
-        class="tab-item flex items-center gap-1 px-3 py-2 cursor-pointer rounded-t text-sm"
-        :class="{ 'bg-base-200 text-primary': tab.path === activePath }"
+        :class="[
+          'group flex items-center gap-1.5 h-7 px-3 rounded-[var(--xb-radius-sm)] cursor-pointer text-xs transition-colors whitespace-nowrap',
+          tab.path === activePath
+            ? 'bg-[var(--xb-brand-subtle)] text-[var(--xb-brand)] font-medium'
+            : 'text-[var(--xb-text-secondary)] hover:bg-[var(--xb-bg-hover)] hover:text-[var(--xb-text-primary)]'
+        ]"
         @click="navigate(tab.path)"
-        @contextmenu.prevent="showContextMenu($event, tab.path)"
+        @contextmenu="showContextMenu($event, tab.path)"
       >
         <span>{{ tab.title }}</span>
         <button
           v-if="tab.closable && !tab.affix"
-          class="btn btn-ghost btn-xs btn-circle"
+          type="button"
+          class="inline-flex items-center justify-center w-4 h-4 rounded-[var(--xb-radius-sm)] hover:bg-[var(--xb-bg-hover)] opacity-0 group-hover:opacity-100 transition-opacity"
           @click.stop="closeTab(tab.path)"
           aria-label="关闭标签"
-        >✕</button>
-      </div>
-      <!-- 右键菜单 -->
-      <div
-        v-if="contextMenuVisible"
-        class="fixed z-50 menu bg-base-100 rounded-box shadow-lg border border-base-300 p-2 w-40"
-        :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
-        @click.stop
-      >
-        <ul>
-          <li><a @click="handleCloseCurrent">关闭当前</a></li>
-          <li><a @click="handleCloseOthers">关闭其他</a></li>
-          <li><a @click="handleCloseAll">关闭全部</a></li>
-        </ul>
+        >
+          <FluentIcon name="close" :size="12" />
+        </button>
       </div>
     </div>
   `

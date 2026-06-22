@@ -1,8 +1,9 @@
 /**
- * @file 全局样式入口，引入 Tailwind CSS、daisyUI 编译样式、主题、过渡与滚动条样式。
+ * @file 全局样式入口，引入 Tailwind CSS、daisyUI 编译样式、Fluent token、主题、动画与滚动条。
  *
- * 项目当前使用纯 tsc 构建（无 Vite/PostCSS），Tailwind v4 暂由 HTML 中的 CDN 脚本提供，
+ * 项目使用纯 tsc 构建（无 Vite/PostCSS），Tailwind v4 由 HTML 中的 CDN 脚本提供，
  * daisyUI v5 使用包内实际发布的 CSS 文件。本文件由 index.html 通过 <link> 直接加载。
+ * Fluent 自定义组件优先使用 --xb-* token，daisyUI 仍可在非 Fluent 区域使用。
  */
 
 /* daisyUI 组件、基础样式与工具类。 */
@@ -11,11 +12,17 @@
 /* daisyUI 全量主题变量。 */
 @import '../../../node_modules/daisyui/themes.css';
 
-/* 自定义主题与变量。 */
+/* Fluent 设计 token（颜色、圆角、阴影、间距、动效）。 */
+@import './tokens.css';
+
+/* Fluent 主题样式与全局基础样式。 */
+@import './fluent-theme.css';
+
+/* 自定义主题变量（品牌色补充）。 */
 @import './themes.css';
 
-/* 过渡动画。 */
-@import './transitions.css';
+/* Fluent 动效规范。 */
+@import './animations.css';
 
 /* 滚动条样式。 */
 @import './scrollbar.css';
@@ -23,7 +30,7 @@
 /* 全局基础样式。 */
 :root {
   color-scheme: light dark;
-  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: var(--xb-font-family);
 }
 
 * {
@@ -41,8 +48,8 @@ body {
   min-height: 100vh;
 }
 
-/* 统一页面背景与文字颜色（由 daisyUI 主题驱动）。 */
+/* 统一页面背景与文字颜色（由 Fluent token 驱动）。 */
 body {
-  background-color: var(--color-base-100, #ffffff);
-  color: var(--color-base-content, #1f2933);
+  background-color: var(--xb-bg-app);
+  color: var(--xb-text-primary);
 }
