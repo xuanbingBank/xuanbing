@@ -35,9 +35,9 @@ export const ROUTE_PATHS = {
   TASK_DETAIL: '/task/:id',
   ABOUT: '/about',
   COMPONENT_DEMO: '/demo/components',
-  FORBIDDEN: '/403',
-  NOT_FOUND: '/404',
-  SERVER_ERROR: '/500'
+  FORBIDDEN: '/forbidden',
+  NOT_FOUND: '/not-found',
+  SERVER_ERROR: '/server-error'
 } as const
 
 /* ───────────────────────── 布局类型 ───────────────────────── */

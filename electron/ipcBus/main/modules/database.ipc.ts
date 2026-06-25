@@ -8,6 +8,7 @@
 
 import { IPC_CHANNELS, requestContracts } from '../../shared'
 import type { IpcMainBus } from '../ipc-main-bus'
+import { createIpcError } from '../ipc-errors'
 import type { DatabaseService } from '../../../services/database.service'
 
 interface ClearLogsInput {
@@ -50,7 +51,7 @@ export function registerDatabaseIpc(options: DatabaseIpcModuleOptions): void {
     const restoreInput = input as { backupPath: string; confirm: boolean }
 
     if (!restoreInput.confirm) {
-      throw new Error('Restore requires explicit confirmation (confirm=true).')
+      throw createIpcError('IPC_VALIDATION_ERROR', 'Restore requires explicit confirmation (confirm=true).')
     }
 
     const result = databaseService.restore(restoreInput.backupPath)

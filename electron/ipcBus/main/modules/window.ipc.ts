@@ -77,6 +77,7 @@ export interface WindowManagerLike {
   reloadWindow(windowId: number): void
   listWindows(): WindowRef[]
   getWindow(windowId: number): WindowRef | undefined
+  getWindowByRole(role: WindowRole): WindowRef | undefined
   updateWindowTitle(windowId: number, title: string): void
   consumeInitPayload(windowId: number): InitPayloadReadResult | undefined
   getEventBus(): WindowEventBusLike
@@ -213,15 +214,16 @@ function resolveTargetWindowId(senderWindowId: number | undefined, input: Window
  */
 export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerLike): void {
   /* ── windowOpen ── */
-  bus.registerHandler(requestContracts[IPC_CHANNELS.windowOpen], async ({ input }) => {
+  bus.registerHandler(requestContracts[IPC_CHANNELS.windowOpen], async ({ input, senderWindowId }) => {
     const openInput = input as WindowOpenInput
+    // 始终用 IPC sender 的 windowId 作为 parentWindowId，防止渲染进程伪造父窗口绕过权限校验。
     const result = windowManager.openWindow(openInput.role, {
       routeName: openInput.routeName,
       params: openInput.params,
       query: openInput.query,
       payload: openInput.payload,
       displayTarget: openInput.displayTarget,
-      parentWindowId: openInput.parentWindowId,
+      parentWindowId: senderWindowId ?? openInput.parentWindowId,
       title: openInput.title
     })
     return result
@@ -292,9 +294,12 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
     // 优先按角色聚焦。
     if (controlInput.role) {
       windowManager.focusByRole(controlInput.role as WindowRole)
-      const ref = windowManager.getWindow(resolveTargetWindowId(senderWindowId, controlInput))
+      const ref = windowManager.getWindowByRole(controlInput.role as WindowRole)
+      if (!ref) {
+        throw createIpcError('IPC_WINDOW_NOT_FOUND', `No alive window found for role "${controlInput.role}".`)
+      }
       return {
-        windowId: ref?.id ?? 0,
+        windowId: ref.id,
         state: 'focused' as const
       }
     }

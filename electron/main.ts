@@ -31,15 +31,16 @@ process.on('unhandledRejection', (reason: unknown) => {
  * 将新 WindowManager 创建的窗口注册到旧 WindowManager，使 IpcMainBus 能解析 sender 与分发事件。
  *
  * @param windowInstance 由新 WindowManager 工厂创建的 BrowserWindow。
+ * @param role 窗口角色。
  */
-function registerWindowWithRuntime(windowInstance: BrowserWindow): void {
+function registerWindowWithRuntime(windowInstance: BrowserWindow, role: string): void {
   if (!ipcRuntime) {
     return
   }
 
   ipcRuntime.windowManager.registerWindow(windowInstance, {
     windowId: windowInstance.id,
-    role: MAIN_WINDOW_ROLE
+    role
   })
 
   windowInstance.on('focus', () => {
@@ -61,6 +62,33 @@ function registerWindowWithRuntime(windowInstance: BrowserWindow): void {
     ipcRuntime?.bus.cleanupWindow(windowInstance.id)
     ipcRuntime?.taskRegistry.cleanupWindow(windowInstance.id)
     ipcRuntime?.windowManager.unregisterWindow(windowInstance.id)
+  })
+}
+
+/**
+ * 监听新 WindowManager 的窗口创建事件，自动将所有窗口桥接到旧 WindowManager。
+ *
+ * 这样通过 IPC windowOpen 创建的非主窗口也能被 IpcMainBus 解析 sender 与通过权限校验。
+ */
+function bridgeWindowManagers(): void {
+  if (!ipcRuntime) {
+    return
+  }
+
+  const eventBus = ipcRuntime.newWindowManager.getEventBus()
+  eventBus.on('window:created', (payload) => {
+    if (!ipcRuntime) {
+      return
+    }
+    const windowInstance = BrowserWindow.fromId(payload.windowId)
+    if (!windowInstance || windowInstance.isDestroyed()) {
+      return
+    }
+    // 避免重复注册（主窗口已在 createWindow 中注册）。
+    if (ipcRuntime.windowManager.getWindowRole(windowInstance.id) !== undefined) {
+      return
+    }
+    registerWindowWithRuntime(windowInstance, payload.role)
   })
 }
 
@@ -89,7 +117,7 @@ function createWindow(): void {
   }
 
   mainWindow = windowInstance
-  registerWindowWithRuntime(mainWindow)
+  registerWindowWithRuntime(mainWindow, MAIN_WINDOW_ROLE)
 
   mainWindow.webContents.on('did-fail-load', (_event, code, description) => {
     console.error('[renderer] Failed to load page', code, description)
@@ -132,6 +160,7 @@ async function bootstrapApplication(): Promise<void> {
     appName: APP_NAME
   })
 
+  bridgeWindowManagers()
   createWindow()
 
   app.on('activate', () => {

@@ -35,15 +35,22 @@ export type WindowRole = (typeof WINDOW_ROLES)[number]
  */
 export const WINDOW_ROUTES = [
   '/',
+  '/dashboard',
   '/login',
   '/settings',
+  '/settings/profile',
+  '/settings/security',
   '/about',
   '/detail/:id',
   '/task-center',
+  '/task/:id',
   '/log-viewer',
   '/modal/:type',
+  '/demo/components',
+  '/demo/fluent-ui',
   '/forbidden',
-  '/not-found'
+  '/not-found',
+  '/server-error'
 ] as const
 
 export type WindowRoutePath = (typeof WINDOW_ROUTES)[number]

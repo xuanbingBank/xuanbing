@@ -7,6 +7,7 @@
 
 import { IPC_CHANNELS, requestContracts } from '../../shared'
 import type { IpcMainBus } from '../ipc-main-bus'
+import { createIpcError } from '../ipc-errors'
 import type { TaskService } from '../../../services/task.service'
 
 interface TaskDataListInput {
@@ -77,7 +78,7 @@ export function registerTaskDataIpc(options: TaskDataIpcModuleOptions): void {
     const task = taskService.findById(getByIdInput.id)
 
     if (!task) {
-      throw new Error(`Task not found: ${getByIdInput.id}`)
+      throw createIpcError('IPC_HANDLER_NOT_FOUND', `Task not found: ${getByIdInput.id}`)
     }
 
     return task
@@ -109,7 +110,7 @@ export function registerTaskDataIpc(options: TaskDataIpcModuleOptions): void {
     })
 
     if (!task) {
-      throw new Error(`Task not found: ${updateInput.id}`)
+      throw createIpcError('IPC_HANDLER_NOT_FOUND', `Task not found: ${updateInput.id}`)
     }
 
     return task

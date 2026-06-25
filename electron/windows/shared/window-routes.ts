@@ -12,17 +12,17 @@ import type { WindowRole, WindowRouteMap } from './window-types'
 export const WINDOW_ROUTE_MAP: WindowRouteMap = {
   main: {
     role: 'main',
-    allowedRoutes: ['/', '/task-center', '/log-viewer', '/about', '/forbidden', '/not-found'],
+    allowedRoutes: ['/', '/dashboard', '/task-center', '/log-viewer', '/about', '/demo/components', '/demo/fluent-ui', '/forbidden', '/not-found', '/server-error'],
     defaultRoute: '/'
   },
   login: {
     role: 'login',
-    allowedRoutes: ['/login', '/forbidden', '/not-found'],
+    allowedRoutes: ['/login', '/forbidden', '/not-found', '/server-error'],
     defaultRoute: '/login'
   },
   settings: {
     role: 'settings',
-    allowedRoutes: ['/settings', '/forbidden', '/not-found'],
+    allowedRoutes: ['/settings', '/settings/profile', '/settings/security', '/forbidden', '/not-found', '/server-error'],
     defaultRoute: '/settings'
   },
   about: {
@@ -42,7 +42,7 @@ export const WINDOW_ROUTE_MAP: WindowRouteMap = {
   },
   taskCenter: {
     role: 'taskCenter',
-    allowedRoutes: ['/task-center', '/not-found'],
+    allowedRoutes: ['/task-center', '/task/:id', '/not-found', '/server-error'],
     defaultRoute: '/task-center'
   },
   logViewer: {

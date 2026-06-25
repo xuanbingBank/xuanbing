@@ -18,6 +18,7 @@ import { TaskRegistry } from './task-registry'
 import { WindowManager } from './window-manager'
 import { WindowManager as NewWindowManager } from '../../windows/main/window-manager'
 import type { BrowserWindowLike as NewBrowserWindowLike } from '../../windows/main/window-manager'
+import { DEFAULT_WINDOW_ROLE_PERMISSIONS } from '../../windows/shared/window-permissions'
 import { resolvePreloadPath, resolveRendererTarget } from '../../renderer-target'
 import { closeConnection, openConnection, resolveDbPaths, runMigrations, type DbPaths } from '../../database'
 import { DatabaseService, SettingService, TaskService, XuanbingFileService } from '../../services'
@@ -90,11 +91,38 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
     environment: app.isPackaged ? 'production' : 'development',
     slowRequestThresholdMs: 500
   })
+
+  // 从窗口角色权限派生 IPC 权限映射，补充 public 与各角色必要的 IPC 权限。
+  const rolePermissions: Record<string, string[]> = {}
+  for (const [role, perms] of Object.entries(DEFAULT_WINDOW_ROLE_PERMISSIONS)) {
+    rolePermissions[role] = [...new Set(['public', ...perms])]
+  }
+  // 主窗口需要全部 IPC 权限（设置、数据库、任务数据、.xuanbing 文件、跨窗口控制等）。
+  rolePermissions.main = [...new Set([
+    ...rolePermissions.main,
+    'setting:read', 'setting:write',
+    'database:read', 'database:write', 'database:backup', 'database:restore',
+    'taskData:read', 'taskData:write',
+    'xuanbingFile:read', 'xuanbingFile:write', 'xuanbingFile:import', 'xuanbingFile:export',
+    'window:control:any', 'window:close:any'
+  ])]
+  // 设置窗口需要设置项读写权限。
+  rolePermissions.settings = [...new Set([
+    ...rolePermissions.settings,
+    'setting:read', 'setting:write'
+  ])]
+  // 任务中心窗口需要任务数据读写权限。
+  rolePermissions.taskCenter = [...new Set([
+    ...rolePermissions.taskCenter,
+    'taskData:read', 'taskData:write'
+  ])]
+
   const bus = new IpcMainBus({
     ipcMain,
     logger,
     windowManager,
-    environment: app.isPackaged ? 'production' : 'development'
+    environment: app.isPackaged ? 'production' : 'development',
+    rolePermissions
   })
 
   /* ───────────────────────── 数据库初始化 ───────────────────────── */

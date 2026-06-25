@@ -192,8 +192,9 @@ export function vacuumDatabase(): boolean {
  */
 export function clearOldLogs(beforeTimestamp: string): number {
   const conn = getConnection()
-  const result = conn.raw.prepare('DELETE FROM app_logs WHERE created_at < ?').run(beforeTimestamp)
-  return result.changes
+  const logResult = conn.raw.prepare('DELETE FROM app_logs WHERE created_at < ?').run(beforeTimestamp)
+  const auditResult = conn.raw.prepare('DELETE FROM audit_logs WHERE created_at < ?').run(beforeTimestamp)
+  return logResult.changes + auditResult.changes
 }
 
 /**
@@ -203,8 +204,9 @@ export function clearOldLogs(beforeTimestamp: string): number {
  */
 export function clearAllLogs(): number {
   const conn = getConnection()
-  const result = conn.raw.prepare('DELETE FROM app_logs').run()
-  return result.changes
+  const logResult = conn.raw.prepare('DELETE FROM app_logs').run()
+  const auditResult = conn.raw.prepare('DELETE FROM audit_logs').run()
+  return logResult.changes + auditResult.changes
 }
 
 // 引入 path 避免未使用警告
