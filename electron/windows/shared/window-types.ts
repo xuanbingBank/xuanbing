@@ -96,7 +96,8 @@ export const WINDOW_PERMISSIONS = [
   'file:read',
   'file:write',
   'task:run',
-  'task:cancel'
+  'task:cancel',
+  'system:notify'
 ] as const
 
 export type WindowPermission = (typeof WINDOW_PERMISSIONS)[number]

@@ -14,6 +14,8 @@ import { registerTaskIpc } from './modules/task.ipc'
 import { registerTaskDataIpc } from './modules/task-data.ipc'
 import { registerWindowIpc } from './modules/window.ipc'
 import { registerXuanbingFileIpc } from './modules/xuanbing-file.ipc'
+import { registerSystemIpc } from './modules/system.ipc'
+import { ToastWindowManager } from '../../desktop-toast/ToastWindowManager'
 import { TaskRegistry } from './task-registry'
 import { WindowManager } from './window-manager'
 import { WindowManager as NewWindowManager } from '../../windows/main/window-manager'
@@ -191,6 +193,11 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
   registerTaskDataIpc({ bus, taskService })
   registerSettingIpc({ bus, settingService })
   registerXuanbingFileIpc({ bus, xuanbingFileService })
+  // 桌面 Toast 窗口管理器
+  const toastManager = new ToastWindowManager()
+  toastManager.init()
+
+  registerSystemIpc(bus, dialog, toastManager)
 
   await bus.start()
 

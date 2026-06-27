@@ -37,6 +37,7 @@ export const DEFAULT_WINDOW_ROLE_PERMISSIONS: Record<WindowRole, WindowPermissio
     'file:write',
     'task:run',
     'task:cancel',
+    'system:notify',
     'route:task-center',
     'route:detail'
   ],

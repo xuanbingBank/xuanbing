@@ -629,3 +629,84 @@ export function createIpcResultSchema<TData>(dataSchema: ZodSchema<TData>): ZodS
  * 定义通用 IPC 结果模型。
  */
 export const ipcResultSchema = createIpcResultSchema(z.unknown())
+
+/* ───────────────────────── 系统级操作 schemas ───────────────────────── */
+
+/**
+ * 系统通知请求模型。
+ */
+export const systemNotificationRequestSchema = z.object({
+  title: z.string({ minLength: 1, maxLength: 256 }),
+  body: z.string({ maxLength: 1024 }).optional(),
+  subtitle: z.string({ maxLength: 256 }).optional(),
+  silent: z.boolean().optional()
+})
+
+/**
+ * 系统通知响应模型。
+ */
+export const systemNotificationResponseSchema = z.object({
+  shown: z.boolean()
+})
+
+/**
+ * 系统消息框类型枚举。
+ */
+export const MESSAGE_BOX_TYPES = ['none', 'info', 'warning', 'error', 'question'] as const
+
+/**
+ * 系统消息框请求模型。
+ */
+export const systemMessageBoxRequestSchema = z.object({
+  title: z.string({ minLength: 1, maxLength: 256 }),
+  message: z.string({ minLength: 1, maxLength: 4096 }),
+  type: z.enum(MESSAGE_BOX_TYPES).optional(),
+  buttons: z.array(z.string({ minLength: 1, maxLength: 64 }), { minLength: 1, maxLength: 4 }).optional(),
+  defaultId: z.number({ integer: true, min: 0 }).optional(),
+  cancelId: z.number({ integer: true, min: 0 }).optional()
+})
+
+/**
+ * 系统消息框响应模型。
+ */
+export const systemMessageBoxResponseSchema = z.object({
+  response: z.number({ integer: true, min: 0 }),
+  checkboxChecked: z.boolean().optional()
+})
+
+/**
+ * 系统桌面 Toast 类型枚举。
+ */
+export const SYSTEM_TOAST_TYPES = ['info', 'success', 'warning', 'error'] as const
+
+/**
+ * 系统桌面 Toast 位置枚举（8 个方向）。
+ */
+export const SYSTEM_TOAST_POSITIONS = [
+  'top-left',
+  'top-center',
+  'top-right',
+  'center-left',
+  'center-right',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right'
+] as const
+
+/**
+ * 系统桌面 Toast 请求模型。
+ */
+export const systemToastRequestSchema = z.object({
+  type: z.enum(SYSTEM_TOAST_TYPES).optional(),
+  title: z.string({ minLength: 1, maxLength: 256 }),
+  message: z.string({ maxLength: 1024 }).optional(),
+  duration: z.number({ integer: true, min: 0, max: 30_000 }).optional(),
+  position: z.enum(SYSTEM_TOAST_POSITIONS).optional()
+})
+
+/**
+ * 系统桌面 Toast 响应模型。
+ */
+export const systemToastResponseSchema = z.object({
+  shown: z.boolean()
+})

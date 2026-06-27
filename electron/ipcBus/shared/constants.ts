@@ -58,7 +58,13 @@ export const IPC_CHANNELS = {
   xuanbingFileValidate: 'xuanbingFile:validate',
   xuanbingFileExportPackage: 'xuanbingFile:exportPackage',
   xuanbingFileDryRunImport: 'xuanbingFile:dryRunImport',
-  xuanbingFileImportPackage: 'xuanbingFile:importPackage'
+  xuanbingFileImportPackage: 'xuanbingFile:importPackage',
+
+  /* ───────────────────────── 系统级操作 ───────────────────────── */
+
+  systemNotificationShow: 'system:notification.show',
+  systemMessageBoxShow: 'system:messageBox.show',
+  systemToastShow: 'system:toast.show'
 } as const
 
 /**
@@ -92,6 +98,7 @@ export const IPC_PERMISSIONS = {
   windowFocus: 'window:focus',
   systemRead: 'system:read',
   systemWrite: 'system:write',
+  systemNotify: 'system:notify',
   taskRun: 'task:run',
   taskCancel: 'task:cancel',
   devtoolsOpen: 'devtools:open',

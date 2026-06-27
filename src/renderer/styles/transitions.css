@@ -69,3 +69,49 @@
 .modal-leave-to {
   opacity: 0;
 }
+
+/* 桌面通知：从右下角滑入 */
+.desktop-notification-enter-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.desktop-notification-leave-active {
+  transition: all 0.25s ease;
+  position: absolute;
+  right: 0;
+}
+.desktop-notification-enter-from {
+  opacity: 0;
+  transform: translateX(100%) scale(0.9);
+}
+.desktop-notification-leave-to {
+  opacity: 0;
+  transform: translateX(100%) scale(0.95);
+}
+.desktop-notification-move {
+  transition: transform 0.3s ease;
+}
+
+/* 桌面通知倒计时进度条 */
+.notification-progress-bar {
+  animation: notification-countdown linear forwards;
+}
+@keyframes notification-countdown {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* 桌面提示框：缩放淡入 */
+.desktop-msgbox-enter-active {
+  transition: all 0.2s ease;
+}
+.desktop-msgbox-leave-active {
+  transition: all 0.15s ease;
+}
+.desktop-msgbox-enter-from {
+  opacity: 0;
+  transform: scale(0.92);
+}
+.desktop-msgbox-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}

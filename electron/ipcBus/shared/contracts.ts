@@ -57,7 +57,13 @@ import {
   xuanbingFileImportRequestSchema,
   xuanbingFileImportResponseSchema,
   xuanbingFilePreviewResponseSchema,
-  xuanbingFileValidateResponseSchema
+  xuanbingFileValidateResponseSchema,
+  systemNotificationRequestSchema,
+  systemNotificationResponseSchema,
+  systemMessageBoxRequestSchema,
+  systemMessageBoxResponseSchema,
+  systemToastRequestSchema,
+  systemToastResponseSchema
 } from './schemas'
 import { z } from './zod'
 import type { EventContract, EventContractMap, IpcEventDirection, IpcPermission, IpcRequestChannel, RequestContract, RequestContractMap } from './types'
@@ -534,6 +540,39 @@ export const requestContracts = {
     timeoutMs: 120_000,
     maxPayloadBytes: 16 * 1024 * 1024,
     audit: true
+  }),
+
+  /* ───────────────────────── 系统级操作 ───────────────────────── */
+
+  [IPC_CHANNELS.systemNotificationShow]: defineRequestContract({
+    channel: IPC_CHANNELS.systemNotificationShow,
+    description: '调用操作系统级桌面通知（Windows Toast / macOS Notification Center）。',
+    permission: IPC_PERMISSIONS.systemNotify,
+    inputSchema: systemNotificationRequestSchema,
+    outputSchema: systemNotificationResponseSchema,
+    timeoutMs: 10_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.systemMessageBoxShow]: defineRequestContract({
+    channel: IPC_CHANNELS.systemMessageBoxShow,
+    description: '调用操作系统级消息框（Windows MessageBox / macOS sheet）。',
+    permission: IPC_PERMISSIONS.systemNotify,
+    inputSchema: systemMessageBoxRequestSchema,
+    outputSchema: systemMessageBoxResponseSchema,
+    timeoutMs: 60_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.systemToastShow]: defineRequestContract({
+    channel: IPC_CHANNELS.systemToastShow,
+    description: '在桌面显示一个独立置顶的 Toast 浮层窗口（不在应用窗口内）。',
+    permission: IPC_PERMISSIONS.systemNotify,
+    inputSchema: systemToastRequestSchema,
+    outputSchema: systemToastResponseSchema,
+    timeoutMs: 5_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: false
   })
 } as const satisfies RequestContractMap
 

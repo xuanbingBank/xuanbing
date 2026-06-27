@@ -513,6 +513,93 @@ export interface DesktopXuanbingFileApi {
 }
 
 /**
+ * 系统桌面通知输入。
+ */
+export interface SystemNotificationInput {
+  title: string
+  body?: string
+  subtitle?: string
+  silent?: boolean
+}
+
+/**
+ * 系统桌面通知输出。
+ */
+export interface SystemNotificationOutput {
+  shown: boolean
+}
+
+/**
+ * 系统消息框类型。
+ */
+export type SystemMessageBoxType = 'none' | 'info' | 'warning' | 'error' | 'question'
+
+/**
+ * 系统消息框输入。
+ */
+export interface SystemMessageBoxInput {
+  title: string
+  message: string
+  type?: SystemMessageBoxType
+  buttons?: string[]
+  defaultId?: number
+  cancelId?: number
+}
+
+/**
+ * 系统消息框输出。
+ */
+export interface SystemMessageBoxOutput {
+  response: number
+  checkboxChecked?: boolean
+}
+
+/**
+ * 桌面 Toast 类型。
+ */
+export type SystemToastType = 'info' | 'success' | 'warning' | 'error'
+
+/**
+ * 桌面 Toast 出现位置（8 个方向）。
+ */
+export type SystemToastPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
+
+/**
+ * 桌面 Toast 输入。
+ */
+export interface SystemToastInput {
+  type?: SystemToastType
+  title: string
+  message?: string
+  duration?: number
+  position?: SystemToastPosition
+}
+
+/**
+ * 桌面 Toast 输出。
+ */
+export interface SystemToastOutput {
+  shown: boolean
+}
+
+/**
+ * 系统级操作命名空间。
+ */
+export interface DesktopSystemApi {
+  showNotification(input: SystemNotificationInput): Promise<SystemNotificationOutput>
+  showMessageBox(input: SystemMessageBoxInput): Promise<SystemMessageBoxOutput>
+  showToast(input: SystemToastInput): Promise<SystemToastOutput>
+}
+
+/**
  * 顶层桌面 API。
  */
 export interface DesktopApi {
@@ -524,4 +611,5 @@ export interface DesktopApi {
   readonly taskData: DesktopTaskDataApi
   readonly setting: DesktopSettingApi
   readonly xuanbingFile: DesktopXuanbingFileApi
+  readonly system: DesktopSystemApi
 }

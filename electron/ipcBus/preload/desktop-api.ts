@@ -14,6 +14,7 @@ import type {
   DesktopDatabaseApi,
   DesktopFileApi,
   DesktopSettingApi,
+  DesktopSystemApi,
   DesktopTaskApi,
   DesktopTaskDataApi,
   DesktopWindowApi,
@@ -24,6 +25,12 @@ import type {
   SettingItem,
   SettingListOutput,
   SettingSetInput,
+  SystemMessageBoxInput,
+  SystemMessageBoxOutput,
+  SystemNotificationInput,
+  SystemNotificationOutput,
+  SystemToastInput,
+  SystemToastOutput,
   TaskCompletedPayload,
   TaskDataCreateInput,
   TaskDataListInput,
@@ -435,6 +442,32 @@ function createXuanbingFileApi(client: PreloadClient): DesktopXuanbingFileApi {
 }
 
 /**
+ * 构造系统级操作命名空间。
+ *
+ * @param client preload 客户端。
+ * @returns 系统级操作命名空间。
+ */
+function createSystemApi(client: PreloadClient): DesktopSystemApi {
+  return Object.freeze({
+    showNotification: (input: SystemNotificationInput) => client.safeInvoke<SystemNotificationOutput, SystemNotificationInput>(
+      IPC_CHANNELS.systemNotificationShow,
+      requestContracts[IPC_CHANNELS.systemNotificationShow].outputSchema,
+      input
+    ),
+    showMessageBox: (input: SystemMessageBoxInput) => client.safeInvoke<SystemMessageBoxOutput, SystemMessageBoxInput>(
+      IPC_CHANNELS.systemMessageBoxShow,
+      requestContracts[IPC_CHANNELS.systemMessageBoxShow].outputSchema,
+      input
+    ),
+    showToast: (input: SystemToastInput) => client.safeInvoke<SystemToastOutput, SystemToastInput>(
+      IPC_CHANNELS.systemToastShow,
+      requestContracts[IPC_CHANNELS.systemToastShow].outputSchema,
+      input
+    )
+  })
+}
+
+/**
  * 构造顶层桌面 API。
  *
  * @param client preload 客户端。
@@ -449,6 +482,7 @@ export function createDesktopApi(client: PreloadClient): DesktopApi {
     database: createDatabaseApi(client),
     taskData: createTaskDataApi(client),
     setting: createSettingApi(client),
-    xuanbingFile: createXuanbingFileApi(client)
+    xuanbingFile: createXuanbingFileApi(client),
+    system: createSystemApi(client)
   })
 }

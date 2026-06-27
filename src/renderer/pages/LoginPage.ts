@@ -64,19 +64,35 @@ export const LoginPage: ComponentOptions = {
       }
     }
 
-    return { username, password, error, loading, handleLogin }
+    // 跳过登录，直接进入仪表盘
+    function handleSkip(): void {
+      if (router) {
+        router.navigate(ROUTE_PATHS.DASHBOARD)
+      } else {
+        console.warn('[LoginPage] router 未注入，无法跳过登录')
+      }
+    }
+
+    return { username, password, error, loading, handleLogin, handleSkip }
   },
   template: `
-    <div class="space-y-4">
-      <FormField label="用户名" required>
-        <FormInput v-model="username" placeholder="请输入用户名" />
-      </FormField>
-      <FormField label="密码" required>
-        <FormInput v-model="password" type="password" placeholder="请输入密码" />
-      </FormField>
-      <BaseButton block :loading="loading" @click="handleLogin">登录</BaseButton>
-      <p v-if="error" class="text-error text-sm text-center">{{ error }}</p>
-      <div class="text-center text-xs text-base-content/40">提示：登录功能尚未实现（演示页）</div>
+    <div class="relative">
+      <button
+        type="button"
+        class="absolute top-0 right-0 text-sm text-base-content/50 hover:text-base-content transition-colors"
+        @click="handleSkip"
+      >跳过 →</button>
+      <div class="space-y-4">
+        <FormField label="用户名" required>
+          <FormInput v-model="username" placeholder="请输入用户名" />
+        </FormField>
+        <FormField label="密码" required>
+          <FormInput v-model="password" type="password" placeholder="请输入密码" />
+        </FormField>
+        <BaseButton block :loading="loading" @click="handleLogin">登录</BaseButton>
+        <p v-if="error" class="text-error text-sm text-center">{{ error }}</p>
+        <div class="text-center text-xs text-base-content/40">提示：登录功能尚未实现（演示页）</div>
+      </div>
     </div>
   `
 }

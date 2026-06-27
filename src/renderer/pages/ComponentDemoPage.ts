@@ -22,6 +22,7 @@ import { SearchForm } from '../components/form/SearchForm'
 import { DataTable } from '../components/table/DataTable'
 import { PermissionGate } from '../components/business/PermissionGate'
 import { useToast } from '../composables/useToast'
+import { useSystemNotification, useSystemMessageBox, useSystemToast } from '../composables/useSystem'
 
 /** 页面 Props */
 interface PageProps {
@@ -63,10 +64,16 @@ export const ComponentDemoPage: ComponentOptions = {
   },
   setup() {
     const toast = useToast()
+    const notify = useSystemNotification()
+    const msgbox = useSystemMessageBox()
+    const desktopToast = useSystemToast()
 
     // Modal / Drawer 显示状态
     const modalVisible = Vue.ref(false)
     const drawerVisible = Vue.ref(false)
+
+    // 系统消息框最近结果
+    const msgboxResult = Vue.ref('')
 
     // 表单演示数据
     const formInput = Vue.ref('')
@@ -111,6 +118,86 @@ export const ComponentDemoPage: ComponentOptions = {
       searchStatus.value = ''
     }
 
+    // ── 系统桌面通知演示 ──
+    async function showSystemNotification(type: 'info' | 'warning' | 'error'): Promise<void> {
+      const presets = {
+        info: { title: '玄冰系统', body: '新版本 v2.4.1 已准备就绪，点击立即更新。' },
+        warning: { title: '安全中心', body: 'C 盘剩余空间不足 5%，建议清理临时文件。' },
+        error: { title: '网络服务', body: '无法连接到远程服务器，请检查网络后重试。' }
+      }
+      const preset = presets[type]
+      try {
+        await notify.show(preset.title, preset.body)
+        toast.success('系统通知已发送', preset.title)
+      } catch (e) {
+        toast.error('通知发送失败', e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    // ── 桌面 Toast 浮层演示 ──
+    async function showDesktopToast(position: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'): Promise<void> {
+      const positionLabels: Record<string, string> = {
+        'top-left': '左上角',
+        'top-center': '上方居中',
+        'top-right': '右上角',
+        'center-left': '左侧居中',
+        'center-right': '右侧居中',
+        'bottom-left': '左下角',
+        'bottom-center': '下方居中',
+        'bottom-right': '右下角'
+      }
+      try {
+        await desktopToast.show('桌面 Toast', `出现在${positionLabels[position]}`, { type: 'info', duration: 4000, position })
+      } catch (e) {
+        toast.error('Toast 显示失败', e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    // ── 系统消息框演示 ──
+    async function showMsgboxOk(): Promise<void> {
+      const result = await msgbox.show({
+        title: '关于玄冰',
+        message: '玄冰桌面任务管理系统 v2.4.1\nCopyright © 2026',
+        type: 'info',
+        buttons: ['确定']
+      })
+      msgboxResult.value = `点击了按钮 ${result}`
+    }
+
+    async function showMsgboxConfirm(): Promise<void> {
+      const result = await msgbox.show({
+        title: '确认删除',
+        message: '确定要删除选中的 3 条任务记录吗？此操作不可撤销。',
+        type: 'warning',
+        buttons: ['删除', '取消'],
+        defaultId: 1
+      })
+      msgboxResult.value = result === 0 ? '已删除' : '已取消'
+    }
+
+    async function showMsgboxError(): Promise<void> {
+      const result = await msgbox.show({
+        title: '操作失败',
+        message: '文件导入失败：格式不支持或文件已损坏。是否重试？',
+        type: 'error',
+        buttons: ['重试', '取消'],
+        defaultId: 0
+      })
+      msgboxResult.value = result === 0 ? '重试' : '取消'
+    }
+
+    async function showMsgboxQuestion(): Promise<void> {
+      const result = await msgbox.show({
+        title: '保存更改',
+        message: '当前文件已修改但尚未保存。是否在关闭前保存更改？',
+        type: 'question',
+        buttons: ['保存', '不保存', '取消'],
+        defaultId: 0
+      })
+      const labels = ['保存', '不保存', '取消']
+      msgboxResult.value = labels[result] || `按钮 ${result}`
+    }
+
     return {
       modalVisible,
       drawerVisible,
@@ -125,7 +212,14 @@ export const ComponentDemoPage: ComponentOptions = {
       tableData,
       showToast,
       handleSearch,
-      handleReset
+      handleReset,
+      showSystemNotification,
+      showDesktopToast,
+      showMsgboxOk,
+      showMsgboxConfirm,
+      showMsgboxError,
+      showMsgboxQuestion,
+      msgboxResult
     }
   },
   template: `
@@ -288,6 +382,53 @@ export const ComponentDemoPage: ComponentOptions = {
         <!-- 15. WindowControls -->
         <BaseCard title="WindowControls 窗口控制" subtitle="窗口操作组件">
           <p class="text-sm text-base-content/60">窗口控制组件位于标题栏右侧，提供最小化、最大化/还原、关闭按钮，通过 useWindowControls 组合式函数实现。</p>
+        </BaseCard>
+
+        <!-- 16. 系统桌面通知 -->
+        <BaseCard title="系统桌面通知" subtitle="调用 Windows Toast / macOS Notification Center">
+          <div class="space-y-3">
+            <div class="flex flex-wrap gap-2">
+              <BaseButton variant="info" size="sm" @click="showSystemNotification('info')">信息通知</BaseButton>
+              <BaseButton variant="warning" size="sm" @click="showSystemNotification('warning')">警告通知</BaseButton>
+              <BaseButton variant="error" size="sm" @click="showSystemNotification('error')">错误通知</BaseButton>
+            </div>
+            <p class="text-xs text-base-content/50">通过 Electron Notification API 调用操作系统原生桌面通知，通知会出现在 Windows 通知中心。</p>
+          </div>
+        </BaseCard>
+
+        <!-- 17. 桌面 Toast 浮层 -->
+        <BaseCard title="桌面 Toast 浮层" subtitle="独立置顶透明窗口，显示在应用外的桌面上，支持 8 个方向">
+          <div class="space-y-3">
+            <div class="grid grid-cols-4 gap-2 max-w-sm">
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('top-left')">左上</BaseButton>
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('top-center')">上中</BaseButton>
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('top-right')">右上</BaseButton>
+              <div></div>
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('center-left')">左中</BaseButton>
+              <div class="flex items-center justify-center text-xs text-base-content/30">8 方向</div>
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('center-right')">右中</BaseButton>
+              <div></div>
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('bottom-left')">左下</BaseButton>
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('bottom-center')">下中</BaseButton>
+              <BaseButton variant="ghost" size="sm" @click="showDesktopToast('bottom-right')">右下</BaseButton>
+              <div></div>
+            </div>
+            <p class="text-xs text-base-content/50">点击按钮在桌面对应位置显示 Toast 浮层（不在应用窗口内），4 秒后自动消失。窗口位置和 toast 排列方向自动适配。</p>
+          </div>
+        </BaseCard>
+
+        <!-- 18. 系统消息框 -->
+        <BaseCard title="系统消息框" subtitle="调用 Windows MessageBox 原生弹窗">
+          <div class="space-y-3">
+            <div class="flex flex-wrap gap-2">
+              <BaseButton variant="info" size="sm" @click="showMsgboxOk">关于框</BaseButton>
+              <BaseButton variant="warning" size="sm" @click="showMsgboxConfirm">确认删除</BaseButton>
+              <BaseButton variant="error" size="sm" @click="showMsgboxError">错误重试</BaseButton>
+              <BaseButton variant="primary" size="sm" @click="showMsgboxQuestion">保存确认</BaseButton>
+            </div>
+            <p v-if="msgboxResult" class="text-sm text-base-content/70 px-3 py-2 bg-base-200 rounded">{{ msgboxResult }}</p>
+            <p class="text-xs text-base-content/50">通过 dialog.showMessageBox 调用操作系统原生消息框，返回用户点击的按钮索引。</p>
+          </div>
         </BaseCard>
       </div>
     </PageContainer>
