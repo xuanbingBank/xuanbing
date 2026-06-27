@@ -15,6 +15,7 @@ import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { getConnection, type DbConnection } from './db-connection'
 import { backupDatabase, type BackupOptions } from './db-backup'
+import { runTransaction } from './db-transaction'
 import { throwDbError, createDbError, CURRENT_SCHEMA_VERSION, MIGRATION_TABLE } from '../ipcBus/shared/database'
 import type { DbPaths } from './db-path'
 
@@ -36,6 +37,7 @@ export interface MigrationFile {
   filename: string
   content: string
   hash: string
+  rawHash: string
 }
 
 /**
@@ -52,6 +54,26 @@ export interface MigrationResult {
  * migrations 目录默认路径（相对于编译后 dist/electron/database/migrations）。
  */
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations')
+
+/**
+ * 将 migration 文本规范化为稳定哈希输入。
+ *
+ * @param content migration 文件原始文本。
+ * @returns 统一为 LF 换行的 migration 文本。
+ */
+function normalizeMigrationHashContent(content: string): string {
+  return content.replace(/\r\n/g, '\n')
+}
+
+/**
+ * 计算 migration 的规范化 SHA-256。
+ *
+ * @param content migration 文件原始文本。
+ * @returns 规范化后的 SHA-256 hash。
+ */
+function createMigrationHash(content: string): string {
+  return createHash('sha256').update(normalizeMigrationHashContent(content)).digest('hex')
+}
 
 /**
  * 读取 migrations 目录下全部 .sql 文件，按文件名排序。
@@ -72,12 +94,14 @@ export function loadMigrationFiles(migrationsDir: string = MIGRATIONS_DIR): Migr
   return sqlFiles.map((filename) => {
     const filePath = path.join(migrationsDir, filename)
     const content = fs.readFileSync(filePath, 'utf8')
-    const hash = createHash('sha256').update(content).digest('hex')
+    const hash = createMigrationHash(content)
+    const rawHash = createHash('sha256').update(content).digest('hex')
     return {
       name: filename.replace(/\.sql$/, ''),
       filename,
       content,
-      hash
+      hash,
+      rawHash
     }
   })
 }
@@ -108,6 +132,58 @@ export function getAppliedMigrations(conn: DbConnection): Set<string> {
   ensureMigrationTable(conn)
   const rows = conn.raw.prepare(`SELECT name FROM ${MIGRATION_TABLE}`).all() as Array<{ name: string }>
   return new Set(rows.map((row) => row.name))
+}
+
+/**
+ * 查询已应用 migration 的 name → hash 映射。
+ *
+ * @param conn 数据库连接。
+ * @returns name 到存储 hash 的映射。
+ */
+function getAppliedMigrationHashes(conn: DbConnection): Map<string, string> {
+  ensureMigrationTable(conn)
+  const rows = conn.raw.prepare(`SELECT name, hash FROM ${MIGRATION_TABLE}`).all() as Array<{ name: string; hash: string }>
+  return new Map(rows.map((row) => [row.name, row.hash]))
+}
+
+/**
+ * 将历史 raw hash 记录升级为当前规范化 hash。
+ *
+ * @param conn 数据库连接。
+ * @param file 当前 migration 文件。
+ */
+function updateAppliedMigrationHash(conn: DbConnection, file: MigrationFile): void {
+  conn.raw.prepare(
+    `UPDATE ${MIGRATION_TABLE} SET hash = ? WHERE name = ?`
+  ).run(file.hash, file.name)
+}
+
+/**
+ * 校验已应用 migration 的存储 hash 与文件当前 hash 一致。
+ *
+ * 防止 migration 文件在应用后被篡改导致 schema 与记录不符。
+ *
+ * @param conn 数据库连接。
+ * @param files 当前 migration 文件列表。
+ */
+function verifyAppliedMigrationHashes(conn: DbConnection, files: MigrationFile[]): void {
+  const storedHashes = getAppliedMigrationHashes(conn)
+  for (const file of files) {
+    const stored = storedHashes.get(file.name)
+    if (stored !== undefined && stored === file.rawHash && stored !== file.hash) {
+      updateAppliedMigrationHash(conn, file)
+      continue
+    }
+
+    if (stored !== undefined && stored !== file.hash) {
+      throwDbError('DB_MIGRATION_FAILED', `Migration ${file.name} hash mismatch: file has been modified after being applied.`, {
+        retryable: false,
+        severity: 'critical',
+        safeDetail: { migration: file.name, reason: 'hash_mismatch' },
+        devDetail: { migration: file.name, storedHash: stored, currentHash: file.hash }
+      })
+    }
+  }
 }
 
 /**
@@ -154,6 +230,9 @@ export function runMigrations(paths: DbPaths, options: { backup?: boolean } = {}
   const files = loadMigrationFiles()
   const applied = getAppliedMigrations(conn)
 
+  // 在执行 pending migration 前，校验已应用 migration 的 hash 与文件当前 hash 一致
+  verifyAppliedMigrationHashes(conn, files)
+
   const pending = files.filter((file) => !applied.has(file.name))
 
   let backupPath: string | null = null
@@ -194,7 +273,10 @@ export function runMigrations(paths: DbPaths, options: { backup?: boolean } = {}
     }
   }
 
-  setSchemaVersion(conn, CURRENT_SCHEMA_VERSION)
+  // schema version 更新单独事务包裹，保证原子性
+  runTransaction(() => {
+    setSchemaVersion(conn, CURRENT_SCHEMA_VERSION)
+  })
 
   return {
     applied: appliedNames,
@@ -229,31 +311,32 @@ export function seedDatabase(conn: DbConnection = getConnection()): void {
     return
   }
 
-  conn.raw.prepare(
-    'INSERT INTO app_settings (id, namespace, key, value, value_type, description, is_system) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(
-    'seed-flag',
-    'system',
-    'seeded',
-    'true',
-    'boolean',
-    '标记数据库是否已执行 seed',
-    1
-  )
+  // 两条 seed INSERT 包裹在事务内，保证原子性（全部成功或全部回滚）
+  runTransaction((tx) => {
+    tx.prepare(
+      'INSERT INTO app_settings (id, namespace, key, value, value_type, description, is_system) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      'seed-flag',
+      'system',
+      'seeded',
+      'true',
+      'boolean',
+      '标记数据库是否已执行 seed',
+      1
+    )
 
-  conn.raw.prepare(
-    'INSERT INTO app_settings (id, namespace, key, value, value_type, description, is_system) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(
-    'seed-theme',
-    'ui',
-    'theme',
-    'light',
-    'string',
-    '默认主题',
-    0
-  )
-
-  void now
+    tx.prepare(
+      'INSERT INTO app_settings (id, namespace, key, value, value_type, description, is_system) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      'seed-theme',
+      'ui',
+      'theme',
+      'light',
+      'string',
+      '默认主题',
+      0
+    )
+  })
 }
 
 /**

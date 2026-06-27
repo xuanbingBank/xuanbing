@@ -28,3 +28,24 @@ test('production HTML references dist runtime assets only', () => {
   assert.match(html, /\.\/dist\/src\/renderer\.bundle\.js/)
   assert.match(html, /\.\/dist\/src\/renderer\/styles\/index\.css/)
 })
+
+test('renderer css includes compiled Tailwind utility classes', () => {
+  const css = readSource('dist/src/renderer/styles/index.css')
+
+  assert.match(css, /\.min-h-screen\b/)
+  assert.match(css, /\.flex\b/)
+  assert.doesNotMatch(css, /\.\.\/\.\.\/\.\.\/node_modules/)
+})
+test('home page uses Fluent layout components instead of legacy bare classes', () => {
+  const source = readSource('src/renderer/pages/index.ts')
+  const homePage = source.slice(
+    source.indexOf('export const HomePage'),
+    source.indexOf('/* ───────────────────────── 详情页')
+  )
+
+  assert.match(homePage, /components:\s*\{[^}]*FluentPage[^}]*FluentCard[^}]*FluentButton/s)
+  assert.match(homePage, /<FluentPage\b/)
+  assert.doesNotMatch(homePage, /class="actions"/)
+  assert.doesNotMatch(homePage, /class="status"/)
+  assert.doesNotMatch(homePage, /class="muted"/)
+})

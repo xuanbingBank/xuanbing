@@ -8,6 +8,7 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
+const tailwindcss = require('tailwindcss')
 
 const projectRoot = path.resolve(__dirname, '..')
 const distRoot = path.join(projectRoot, 'dist')
@@ -435,6 +436,177 @@ function copyRendererRuntimeAssets() {
   )
 }
 
+
+/**
+ * 递归列出目录下参与 Tailwind 类名扫描的源文件。
+ *
+ * @param {string} dirPath 源码目录路径。
+ * @returns {string[]} 源文件路径列表。
+ */
+function listTailwindSourceFiles(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    return []
+  }
+
+  const files = []
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    const entryPath = path.join(dirPath, entry.name)
+
+    if (entry.isDirectory()) {
+      files.push(...listTailwindSourceFiles(entryPath))
+      continue
+    }
+
+    if (entry.isFile() && /\.(ts|js|html)$/.test(entry.name)) {
+      files.push(entryPath)
+    }
+  }
+
+  return files
+}
+
+/**
+ * 从源码文本中提取可能的 Tailwind 类名候选。
+ *
+ * @param {string} content 源码文本。
+ * @returns {string[]} Tailwind 类名候选列表。
+ */
+function extractTailwindCandidates(content) {
+  const candidates = new Set()
+  const pattern = /[A-Za-z0-9_!:\/[\]().,%#-]+/g
+  let match = pattern.exec(content)
+
+  while (match) {
+    const candidate = match[0]
+    if (candidate.length > 0 && !candidate.startsWith('-') && /[A-Za-z]/.test(candidate)) {
+      candidates.add(candidate)
+    }
+    match = pattern.exec(content)
+  }
+
+  return [...candidates]
+}
+
+/**
+ * 收集 renderer 源码中使用到的 Tailwind 类名候选。
+ *
+ * @returns {string[]} Tailwind 类名候选列表。
+ */
+function collectTailwindCandidates() {
+  const candidates = new Set()
+  const sourceFiles = [
+    path.join(projectRoot, 'index.html'),
+    ...listTailwindSourceFiles(path.join(projectRoot, 'src'))
+  ]
+
+  for (const sourceFile of sourceFiles) {
+    const content = fs.readFileSync(sourceFile, 'utf8')
+    for (const candidate of extractTailwindCandidates(content)) {
+      candidates.add(candidate)
+    }
+  }
+
+  return [...candidates]
+}
+
+/**
+ * 解析 Tailwind CSS 包内样式文件路径。
+ *
+ * @param {string} id 样式导入 ID。
+ * @param {string} base 当前导入基准目录。
+ * @returns {string} 样式文件绝对路径。
+ */
+function resolveTailwindStylesheet(id, base) {
+  if (id === 'tailwindcss') {
+    return require.resolve('tailwindcss/index.css')
+  }
+
+  if (id.startsWith('tailwindcss/')) {
+    return require.resolve(id)
+  }
+
+  return path.resolve(base, id)
+}
+
+/**
+ * 供 Tailwind 编译器加载 @import 样式文件。
+ *
+ * @param {string} id 样式导入 ID。
+ * @param {string} base 当前导入基准目录。
+ * @returns {Promise<{path: string, base: string, content: string}>} 样式文件内容。
+ */
+async function loadTailwindStylesheet(id, base) {
+  const stylesheetPath = resolveTailwindStylesheet(id, base)
+  return {
+    path: stylesheetPath,
+    base: path.dirname(stylesheetPath),
+    content: fs.readFileSync(stylesheetPath, 'utf8')
+  }
+}
+
+/**
+ * 解析普通 CSS @import 的本地文件路径。
+ *
+ * @param {string} request CSS import 请求。
+ * @param {string} ownerPath 发起 import 的文件路径。
+ * @returns {string} 被导入 CSS 文件路径。
+ */
+function resolveCssImport(request, ownerPath) {
+  if (request.startsWith('.')) {
+    return path.resolve(path.dirname(ownerPath), request)
+  }
+
+  return require.resolve(request)
+}
+
+/**
+ * 将 CSS 文件中的本地 @import 递归内联。
+ *
+ * @param {string} cssPath CSS 文件路径。
+ * @param {Set<string>} seen 已处理文件路径集合。
+ * @returns {string} 内联后的 CSS 文本。
+ */
+function inlineCssImports(cssPath, seen = new Set()) {
+  const normalizedPath = path.resolve(cssPath)
+  if (seen.has(normalizedPath)) {
+    return ''
+  }
+
+  seen.add(normalizedPath)
+  const content = fs.readFileSync(normalizedPath, 'utf8')
+  return content.replace(/@import\s+['"]([^'"]+)['"];?/g, (_full, request) => {
+    const importedPath = resolveCssImport(request, normalizedPath)
+    return inlineCssImports(importedPath, seen)
+  })
+}
+
+/**
+ * 构建 Electron 运行时可直接加载的 renderer 样式文件。
+ *
+ * @returns {Promise<void>}
+ */
+async function buildRendererStylesheet() {
+  const srcStylePath = path.join(projectRoot, 'src', 'renderer', 'styles', 'index.css')
+  const destStylePath = path.join(distRoot, 'src', 'renderer', 'styles', 'index.css')
+  const compiledTailwind = await tailwindcss.compile('@import "tailwindcss";', {
+    base: projectRoot,
+    from: srcStylePath,
+    loadStylesheet: loadTailwindStylesheet
+  })
+  const tailwindCss = compiledTailwind.build(collectTailwindCandidates())
+  const appCss = inlineCssImports(srcStylePath)
+  const output = [
+    '/**',
+    ' * @file Renderer 编译后样式，由 scripts/build-renderer-bundle.js 自动生成。',
+    ' */',
+    tailwindCss,
+    appCss
+  ].join('\n\n')
+
+  fs.mkdirSync(path.dirname(destStylePath), { recursive: true })
+  fs.writeFileSync(destStylePath, output, 'utf8')
+  console.log(`[renderer-css] wrote ${path.relative(projectRoot, destStylePath)}`)
+}
 function copyMigrationFiles() {
   const srcDir = path.join(projectRoot, 'electron', 'database', 'migrations')
   const destDir = path.join(distRoot, 'electron', 'database', 'migrations')
@@ -458,9 +630,10 @@ function copyMigrationFiles() {
 /**
  * 构建全部 Electron 启动 bundle。
  */
-function buildAllBundles() {
+async function buildAllBundles() {
   copyMigrationFiles()
   copyRendererRuntimeAssets()
+  await buildRendererStylesheet()
 
   buildBundle({
     name: 'renderer',
@@ -485,4 +658,7 @@ function buildAllBundles() {
   })
 }
 
-buildAllBundles()
+buildAllBundles().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

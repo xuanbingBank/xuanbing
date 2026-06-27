@@ -20,7 +20,11 @@ import type {
 import { useWindowControls } from '../composables/useWindowControls'
 import { useOpenWindow } from '../composables/useOpenWindow'
 import { useWindowEvents } from '../composables/useWindowEvents'
-
+import { FluentPage } from '../components/layout/FluentPage'
+import { FluentCard } from '../components/base/FluentCard'
+import { FluentButton } from '../components/base/FluentButton'
+import { FluentBadge } from '../components/base/FluentBadge'
+import { FluentIcon } from '../components/base/FluentIcon'
 // 独立文件页面导入
 import { DashboardPage } from './DashboardPage'
 import { LoginPage } from './LoginPage'
@@ -104,6 +108,8 @@ interface HomePageView {
   permissions: string[]
   stateText: string
   cleanup: DesktopUnsubscribe | null
+  /** 组件是否已卸载，防止 async mounted 在卸载后竞态写入 */
+  unmounted: boolean
 }
 
 /**
@@ -111,6 +117,7 @@ interface HomePageView {
  */
 export const HomePage: ComponentOptions = {
   name: 'HomePage',
+  components: { FluentPage, FluentCard, FluentButton, FluentBadge, FluentIcon },
   props: {
     params: { type: Object, default: () => ({}) },
     query: { type: Object, default: () => ({}) },
@@ -127,28 +134,37 @@ export const HomePage: ComponentOptions = {
       isVisible: true,
       permissions: [],
       stateText: '窗口状态未同步',
-      cleanup: null
+      cleanup: null,
+      unmounted: false
     }
   },
   async mounted(this: HomePageView): Promise<void> {
     // 获取应用信息
     try {
       const info = await window.desktop.app.getInfo()
+      if (this.unmounted) return
       this.appInfoText = formatAppInfo(info)
     } catch (error) {
+      if (this.unmounted) return
       this.appInfoText = `获取应用信息失败: ${formatError(error)}`
     }
 
     // 获取当前窗口信息
     try {
       const info = await window.desktop.window.getCurrent()
+      if (this.unmounted) return
       this.windowId = info.windowId
       this.role = info.role
       this.permissions = info.permissions
       this.stateText = `窗口 ${this.windowId} (${this.role}) 已就绪`
-    } catch {
+    } catch (err) {
+      console.warn('[index] getCurrent failed', err)
+      if (this.unmounted) return
       this.stateText = '获取窗口信息失败'
     }
+
+    // 卸载后不再订阅窗口事件，避免 async mounted 竞态
+    if (this.unmounted) return
 
     // 订阅窗口状态变化
     const { subscribe } = useWindowEvents()
@@ -196,6 +212,7 @@ export const HomePage: ComponentOptions = {
     })
   },
   beforeUnmount(this: HomePageView): void {
+    this.unmounted = true
     this.cleanup?.()
     this.cleanup = null
   },
@@ -271,29 +288,136 @@ export const HomePage: ComponentOptions = {
     }
   },
   template: `
-    <div>
-      <h1>首页</h1>
-      <p class="muted">{{ appInfoText }}</p>
-      <div class="actions">
-        <button @click="openSettings">打开设置</button>
-        <button @click="openDetailWindow">打开详情</button>
-        <button @click="openAbout">关于</button>
-        <button @click="openTaskCenter">任务中心</button>
-        <button @click="openLogViewer">日志查看器</button>
+    <FluentPage title="首页" description="应用概览、常用入口与当前窗口状态" max-width="1180px">
+      <template #actions>
+        <FluentButton variant="secondary" size="small" icon="refresh" @click="refreshAppInfo">刷新信息</FluentButton>
+      </template>
+
+      <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
+        <div class="space-y-6 min-w-0">
+          <FluentCard title="常用入口" subtitle="打开常用窗口与工作区功能">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <button
+                class="group text-left rounded-[var(--xb-radius-lg)] border border-[var(--xb-border-subtle)] bg-[var(--xb-bg-surface)] p-4 transition-all hover:border-[var(--xb-border-strong)] hover:bg-[var(--xb-bg-hover)] active:scale-[0.99]"
+                @click="openSettings"
+              >
+                <div class="flex items-start gap-3">
+                  <span class="h-9 w-9 rounded-[var(--xb-radius-md)] bg-[var(--xb-brand-subtle)] text-[var(--xb-brand)] flex items-center justify-center">
+                    <FluentIcon name="settings" :size="18" />
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold text-[var(--xb-text-primary)]">设置</span>
+                    <span class="block text-xs text-[var(--xb-text-tertiary)] mt-1">主题、数据库与偏好</span>
+                  </span>
+                </div>
+              </button>
+              <button
+                class="group text-left rounded-[var(--xb-radius-lg)] border border-[var(--xb-border-subtle)] bg-[var(--xb-bg-surface)] p-4 transition-all hover:border-[var(--xb-border-strong)] hover:bg-[var(--xb-bg-hover)] active:scale-[0.99]"
+                @click="openTaskCenter"
+              >
+                <div class="flex items-start gap-3">
+                  <span class="h-9 w-9 rounded-[var(--xb-radius-md)] bg-[var(--xb-info-subtle)] text-[var(--xb-info)] flex items-center justify-center">
+                    <FluentIcon name="task" :size="18" />
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold text-[var(--xb-text-primary)]">任务中心</span>
+                    <span class="block text-xs text-[var(--xb-text-tertiary)] mt-1">查看后台任务状态</span>
+                  </span>
+                </div>
+              </button>
+              <button
+                class="group text-left rounded-[var(--xb-radius-lg)] border border-[var(--xb-border-subtle)] bg-[var(--xb-bg-surface)] p-4 transition-all hover:border-[var(--xb-border-strong)] hover:bg-[var(--xb-bg-hover)] active:scale-[0.99]"
+                @click="openLogViewer"
+              >
+                <div class="flex items-start gap-3">
+                  <span class="h-9 w-9 rounded-[var(--xb-radius-md)] bg-[var(--xb-warning-subtle)] text-[var(--xb-warning)] flex items-center justify-center">
+                    <FluentIcon name="log" :size="18" />
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold text-[var(--xb-text-primary)]">日志查看器</span>
+                    <span class="block text-xs text-[var(--xb-text-tertiary)] mt-1">查看运行日志</span>
+                  </span>
+                </div>
+              </button>
+              <button
+                class="group text-left rounded-[var(--xb-radius-lg)] border border-[var(--xb-border-subtle)] bg-[var(--xb-bg-surface)] p-4 transition-all hover:border-[var(--xb-border-strong)] hover:bg-[var(--xb-bg-hover)] active:scale-[0.99]"
+                @click="openDetailWindow"
+              >
+                <div class="flex items-start gap-3">
+                  <span class="h-9 w-9 rounded-[var(--xb-radius-md)] bg-[var(--xb-bg-hover)] text-[var(--xb-text-secondary)] flex items-center justify-center">
+                    <FluentIcon name="window" :size="18" />
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold text-[var(--xb-text-primary)]">详情窗口</span>
+                    <span class="block text-xs text-[var(--xb-text-tertiary)] mt-1">打开演示详情页</span>
+                  </span>
+                </div>
+              </button>
+              <button
+                class="group text-left rounded-[var(--xb-radius-lg)] border border-[var(--xb-border-subtle)] bg-[var(--xb-bg-surface)] p-4 transition-all hover:border-[var(--xb-border-strong)] hover:bg-[var(--xb-bg-hover)] active:scale-[0.99]"
+                @click="openAbout"
+              >
+                <div class="flex items-start gap-3">
+                  <span class="h-9 w-9 rounded-[var(--xb-radius-md)] bg-[var(--xb-success-subtle)] text-[var(--xb-success)] flex items-center justify-center">
+                    <FluentIcon name="info" :size="18" />
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold text-[var(--xb-text-primary)]">关于</span>
+                    <span class="block text-xs text-[var(--xb-text-tertiary)] mt-1">查看应用版本信息</span>
+                  </span>
+                </div>
+              </button>
+            </div>
+          </FluentCard>
+
+          <FluentCard title="应用信息" subtitle="主进程返回的运行时环境">
+            <div class="rounded-[var(--xb-radius-md)] bg-[var(--xb-bg-subtle)] border border-[var(--xb-border-subtle)] px-4 py-3 text-sm text-[var(--xb-text-secondary)] leading-6 break-words">
+              {{ appInfoText }}
+            </div>
+          </FluentCard>
+        </div>
+
+        <div class="space-y-6 min-w-0">
+          <FluentCard title="窗口状态" subtitle="当前主窗口上下文">
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 flex-wrap">
+                <FluentBadge variant="brand" dot>{{ role || '未知角色' }}</FluentBadge>
+                <FluentBadge :variant="isFocused ? 'success' : 'default'" dot>{{ isFocused ? '已聚焦' : '未聚焦' }}</FluentBadge>
+                <FluentBadge :variant="isVisible ? 'info' : 'warning'" dot>{{ isVisible ? '可见' : '不可见' }}</FluentBadge>
+              </div>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-[var(--xb-radius-md)] bg-[var(--xb-bg-subtle)] p-3">
+                  <div class="text-xs text-[var(--xb-text-tertiary)]">窗口 ID</div>
+                  <div class="mt-1 font-semibold text-[var(--xb-text-primary)]">{{ windowId || '-' }}</div>
+                </div>
+                <div class="rounded-[var(--xb-radius-md)] bg-[var(--xb-bg-subtle)] p-3">
+                  <div class="text-xs text-[var(--xb-text-tertiary)]">最大化</div>
+                  <div class="mt-1 font-semibold text-[var(--xb-text-primary)]">{{ isMaximized ? '是' : '否' }}</div>
+                </div>
+              </div>
+              <div class="text-sm text-[var(--xb-text-secondary)] leading-6">
+                {{ stateText }}
+              </div>
+              <div>
+                <div class="text-xs text-[var(--xb-text-tertiary)] mb-2">权限</div>
+                <div class="flex flex-wrap gap-1.5">
+                  <FluentBadge v-for="permission in permissions" :key="permission" size="small">{{ permission }}</FluentBadge>
+                  <span v-if="permissions.length === 0" class="text-sm text-[var(--xb-text-tertiary)]">无</span>
+                </div>
+              </div>
+            </div>
+          </FluentCard>
+
+          <FluentCard title="窗口控制" subtitle="当前窗口快捷操作">
+            <div class="grid grid-cols-2 gap-2">
+              <FluentButton variant="secondary" icon="minus" @click="minimizeWindow">最小化</FluentButton>
+              <FluentButton variant="secondary" icon="window" @click="toggleMaximize">{{ isMaximized ? '还原' : '最大化' }}</FluentButton>
+              <FluentButton variant="danger" icon="close" class="col-span-2" @click="closeWindow">关闭窗口</FluentButton>
+            </div>
+          </FluentCard>
+        </div>
       </div>
-      <div class="actions">
-        <button @click="refreshAppInfo">刷新信息</button>
-        <button @click="minimizeWindow">最小化</button>
-        <button @click="toggleMaximize">{{ isMaximized ? '还原' : '最大化' }}</button>
-        <button @click="closeWindow">关闭窗口</button>
-      </div>
-      <div class="status">
-        <p>{{ stateText }}</p>
-        <p>窗口 ID: {{ windowId }} | 角色: {{ role }}</p>
-        <p>最大化: {{ isMaximized ? '是' : '否' }} | 聚焦: {{ isFocused ? '是' : '否' }} | 可见: {{ isVisible ? '是' : '否' }}</p>
-        <p>权限: {{ permissions.join(', ') || '无' }}</p>
-      </div>
-    </div>
+    </FluentPage>
   `
 }
 
@@ -330,6 +454,7 @@ export const DetailPage: ComponentOptions = {
       await new Promise((resolve) => setTimeout(resolve, 200))
       this.detailText = `正在展示 ID 为 ${id} 的详情内容。查询参数: ${JSON.stringify(this.query)}`
     } catch (error) {
+      console.warn('[index] load detail failed', error)
       this.detailText = `加载详情失败: ${formatError(error)}`
     } finally {
       this.loading = false
@@ -398,6 +523,7 @@ export const LogViewerPage: ComponentOptions = {
   },
   methods: {
     refreshLogs(this: LogViewerPageView): void {
+      // TODO: mock 数据,待接入真实数据源
       const levels = ['info', 'warn', 'error', 'debug']
       const messages = [
         '应用启动完成',
@@ -428,7 +554,8 @@ export const LogViewerPage: ComponentOptions = {
     async closeWindow(this: LogViewerPageView): Promise<void> {
       try {
         await useWindowControls().close()
-      } catch {
+      } catch (err) {
+        console.warn('[index] closeWindow failed', err)
         // 忽略关闭错误
       }
     }
@@ -452,7 +579,7 @@ export const LogViewerPage: ComponentOptions = {
         <div
           class="log-item"
           v-for="(log, index) in logs"
-          :key="index"
+          :key="index + '-' + log.timestamp"
           v-show="filter === 'all' || log.level === filter"
         >
           <span class="log-time">{{ log.timestamp }}</span>
