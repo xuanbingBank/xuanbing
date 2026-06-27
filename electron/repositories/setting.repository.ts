@@ -68,7 +68,11 @@ export class SettingRepository extends BaseRepository {
       now
     )
 
-    return this.get(input.namespace, input.key)!
+    const created = this.get(input.namespace, input.key)
+    if (!created) {
+      throw new Error('Setting not found after upsert: ' + input.namespace + '/' + input.key)
+    }
+    return created
   }
 
   /**

@@ -65,15 +65,15 @@ const sizeMap: Record<ButtonSize, string> = {
 export const BaseButton: ComponentOptions = {
   name: 'BaseButton',
   props: {
-    variant: { type: Object as () => ButtonVariant, default: 'primary' },
-    size: { type: Object as () => ButtonSize, default: 'md' },
+    variant: { type: String as () => ButtonVariant, default: 'primary' },
+    size: { type: String as () => ButtonSize, default: 'md' },
     loading: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     block: { type: Boolean, default: false },
     outline: { type: Boolean, default: false },
     leftIcon: { type: String, default: '' },
     rightIcon: { type: String, default: '' },
-    type: { type: Object as () => ButtonType, default: 'button' }
+    type: { type: String as () => ButtonType, default: 'button' }
   },
   emits: ['click'],
   setup(props, ctx) {

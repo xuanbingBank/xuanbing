@@ -65,6 +65,11 @@ function readSystemPreference(): ThemeName {
 /** 主题 Store 单例 */
 let themeStoreInstance: ThemeStore | null = null
 
+/** mediaQuery 监听句柄，供 destroyThemeStore 移除 */
+let themeMediaQuery: MediaQueryList | null = null
+/** mediaQuery change 回调，供 destroyThemeStore 移除 */
+let themeMediaQueryHandler: ((e: MediaQueryListEvent) => void) | null = null
+
 /**
  * 创建主题 Store。
  *
@@ -101,7 +106,7 @@ export function createThemeStore(): ThemeStore {
   function initTheme(): void {
     if (state.initialized) return
 
-    // 监听系统主题变化
+    // 监听系统主题变化，保存句柄以便 destroyThemeStore 移除
     if (typeof window !== 'undefined' && window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
       const handler = (e: MediaQueryListEvent) => {
@@ -110,6 +115,8 @@ export function createThemeStore(): ThemeStore {
           applyTheme()
         }
       }
+      themeMediaQuery = mediaQuery
+      themeMediaQueryHandler = handler
       // 兼容旧版 Safari
       if (mediaQuery.addEventListener) {
         mediaQuery.addEventListener('change', handler)
@@ -187,4 +194,23 @@ export function useThemeStore(): ThemeStore {
     return createThemeStore()
   }
   return themeStoreInstance
+}
+
+/**
+ * 销毁主题 Store：移除 mediaQuery change 监听并清空单例，避免内存泄漏。
+ *
+ * 应在应用卸载时（如根组件 onBeforeUnmount）调用。
+ */
+export function destroyThemeStore(): void {
+  if (themeMediaQuery && themeMediaQueryHandler) {
+    // 兼容旧版 Safari
+    if (themeMediaQuery.removeEventListener) {
+      themeMediaQuery.removeEventListener('change', themeMediaQueryHandler)
+    } else if ((themeMediaQuery as unknown as { removeListener?: (h: (e: MediaQueryListEvent) => void) => void }).removeListener) {
+      ;(themeMediaQuery as unknown as { removeListener: (h: (e: MediaQueryListEvent) => void) => void }).removeListener(themeMediaQueryHandler)
+    }
+  }
+  themeMediaQuery = null
+  themeMediaQueryHandler = null
+  themeStoreInstance = null
 }

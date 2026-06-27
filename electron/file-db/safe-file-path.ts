@@ -17,8 +17,19 @@ import { XUANBING_DOT_EXTENSION, XUANBING_EXTENSION } from '../ipcBus/shared/dat
  * @returns 规范化后的绝对路径。
  */
 export function ensurePathWithinDir(targetPath: string, baseDir: string): string {
-  const normalizedBase = path.resolve(baseDir)
-  const normalizedTarget = path.resolve(normalizedBase, targetPath)
+  // Windows 文件系统大小写不敏感，归一化为小写后比较；同时去除 \\?\ 长路径前缀
+  // 以保证 startsWith 比较结果稳定（path.resolve 不会剥离该前缀）。
+  let resolvedTarget = path.resolve(targetPath)
+  let resolvedBase = path.resolve(baseDir)
+  const LONG_PATH_PREFIX = '\\\\?\\'
+  if (resolvedTarget.startsWith(LONG_PATH_PREFIX)) {
+    resolvedTarget = resolvedTarget.slice(LONG_PATH_PREFIX.length)
+  }
+  if (resolvedBase.startsWith(LONG_PATH_PREFIX)) {
+    resolvedBase = resolvedBase.slice(LONG_PATH_PREFIX.length)
+  }
+  const normalizedTarget = resolvedTarget.toLowerCase()
+  const normalizedBase = resolvedBase.toLowerCase()
 
   if (!normalizedTarget.startsWith(normalizedBase + path.sep) && normalizedTarget !== normalizedBase) {
     throwDbError('XUANBING_FILE_PATH_FORBIDDEN', 'Path traversal detected.', {
@@ -27,7 +38,7 @@ export function ensurePathWithinDir(targetPath: string, baseDir: string): string
     })
   }
 
-  return normalizedTarget
+  return resolvedTarget
 }
 
 /**
@@ -76,14 +87,18 @@ export function ensureFileSize(filePath: string, maxBytes: number): void {
  * @param dbFile 主数据库文件路径。
  */
 export function ensureNotDatabaseFile(filePath: string, dbFile: string): void {
-  const normalizedTarget = path.resolve(filePath)
-  const normalizedDb = path.resolve(dbFile)
+  // Windows 大小写不敏感，归一化为小写后比较；同时覆盖 -wal / -shm / -journal 侧车文件
+  const normalizedTarget = path.resolve(filePath).toLowerCase()
+  const normalizedDb = path.resolve(dbFile).toLowerCase()
 
-  if (normalizedTarget === normalizedDb) {
-    throwDbError('XUANBING_FILE_PATH_FORBIDDEN', 'Cannot overwrite the main database file.', {
-      severity: 'critical',
-      safeDetail: { reason: 'overwrite_database' }
-    })
+  const protectedSuffixes = ['', '-wal', '-shm', '-journal']
+  for (const suffix of protectedSuffixes) {
+    if (normalizedTarget === normalizedDb + suffix) {
+      throwDbError('XUANBING_FILE_PATH_FORBIDDEN', 'Cannot overwrite the main database file.', {
+        severity: 'critical',
+        safeDetail: { reason: 'overwrite_database' }
+      })
+    }
   }
 }
 
@@ -94,6 +109,29 @@ export function ensureNotDatabaseFile(filePath: string, dbFile: string): void {
  * @returns 安全文件名。
  */
 export function sanitizeFileName(name: string): string {
-  const sanitized = name.replace(/[^a-zA-Z0-9._-]/g, '_')
-  return sanitized.length > 0 ? sanitized : 'untitled'
+  let sanitized = name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  if (sanitized.length === 0) {
+    sanitized = 'untitled'
+  }
+  // 拒绝纯点号文件名（如 "..." / "."），Windows 下无意义且易与系统保留名混淆
+  if (/^\.+$/.test(sanitized)) {
+    sanitized = 'untitled'
+  }
+  // 剥离尾部点号与空格：Windows 文件系统会截断文件名尾部 . 与空格，
+  // 不剥离则 "CON." / "CON " 可绕过保留名检查被识别为 CON 设备
+  sanitized = sanitized.replace(/[\s.]+$/, '')
+  if (sanitized.length === 0) {
+    sanitized = 'untitled'
+  }
+  // 屏蔽 Windows 保留设备名（CON/PRN/AUX/NUL/COM1-9/LPT1-9），
+  // 含带扩展名形式（如 CON.txt 也视为设备名），前置下划线避免被系统占用
+  const RESERVED = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$/i
+  if (RESERVED.test(sanitized)) {
+    sanitized = '_' + sanitized
+  }
+  // 限制文件名长度，避免超出文件系统上限（NTFS 255，留余量给扩展名）
+  if (sanitized.length > 200) {
+    sanitized = sanitized.slice(0, 200)
+  }
+  return sanitized
 }

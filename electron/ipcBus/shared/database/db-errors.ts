@@ -35,7 +35,10 @@ export const DB_ERROR_CODES = {
   xuanbingFileTooLarge: 'XUANBING_FILE_TOO_LARGE',
   xuanbingFilePathForbidden: 'XUANBING_FILE_PATH_FORBIDDEN',
   xuanbingFileImportConflict: 'XUANBING_FILE_IMPORT_CONFLICT',
-  xuanbingFileExportFailed: 'XUANBING_FILE_EXPORT_FAILED'
+  xuanbingFileImportFailed: 'XUANBING_FILE_IMPORT_FAILED',
+  xuanbingFileExportFailed: 'XUANBING_FILE_EXPORT_FAILED',
+  xuanbingFileWriteFailed: 'XUANBING_FILE_WRITE_FAILED',
+  xuanbingFileRefInvalid: 'XUANBING_FILE_REF_INVALID'
 } as const
 
 export type DbErrorCode = (typeof DB_ERROR_CODES)[keyof typeof DB_ERROR_CODES]

@@ -36,9 +36,9 @@ export const BaseDrawer: ComponentOptions = {
   name: 'BaseDrawer',
   props: {
     modelValue: { type: Boolean, default: false },
-    side: { type: Object as () => DrawerSide, default: 'right' },
+    side: { type: String as () => DrawerSide, default: 'right' },
     title: { type: String, default: '' },
-    size: { type: Object as () => DrawerSize, default: 'md' },
+    size: { type: String as () => DrawerSize, default: 'md' },
     closeOnBackdrop: { type: Boolean, default: true }
   },
   emits: ['update:modelValue', 'close'],

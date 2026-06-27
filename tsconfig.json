@@ -1,4 +1,5 @@
 {
+  // TODO: 建议后续开启 noUnusedLocals / noUnusedParameters / noImplicitReturns / noFallthroughCasesInSwitch / forceConsistentCasingInFileNames 等细化选项以提升类型严格度
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",

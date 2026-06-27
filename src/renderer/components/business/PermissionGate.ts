@@ -24,8 +24,8 @@ export const PermissionGate: ComponentOptions = {
   name: 'PermissionGate',
   props: {
     permissions: { type: Array, default: () => [] },
-    mode: { type: Object as () => PermissionMode, default: 'any' },
-    behavior: { type: Object as () => GateBehavior, default: 'hide' },
+    mode: { type: String as () => PermissionMode, default: 'any' },
+    behavior: { type: String as () => GateBehavior, default: 'hide' },
     roles: { type: Array, default: () => [] },
     windowRoles: { type: Array, default: () => [] }
   },

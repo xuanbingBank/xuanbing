@@ -40,7 +40,7 @@ export const BaseModal: ComponentOptions = {
   props: {
     modelValue: { type: Boolean, default: false },
     title: { type: String, default: '' },
-    size: { type: Object as () => ModalSize, default: 'md' },
+    size: { type: String as () => ModalSize, default: 'md' },
     loading: { type: Boolean, default: false },
     confirmText: { type: String, default: '确认' },
     cancelText: { type: String, default: '取消' },
@@ -88,9 +88,18 @@ export const BaseModal: ComponentOptions = {
       }
     }
 
-    Vue.onMounted(() => {
-      window.addEventListener('keydown', handleKeydown)
-    })
+    // 仅在模态框打开时注册 ESC 监听,关闭时移除
+    Vue.watch(
+      () => p.modelValue,
+      (open) => {
+        if (open) {
+          window.addEventListener('keydown', handleKeydown)
+        } else {
+          window.removeEventListener('keydown', handleKeydown)
+        }
+      },
+      { immediate: true }
+    )
 
     Vue.onBeforeUnmount(() => {
       window.removeEventListener('keydown', handleKeydown)

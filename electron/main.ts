@@ -2,7 +2,7 @@
  * @file 应用主进程入口，负责窗口创建、安全策略与 IPC Runtime 装配。
  */
 
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, Menu, session } from 'electron'
 import { createMainIpcRuntime } from './ipcBus/main'
 import { IPC_EVENTS } from './ipcBus/shared'
 
@@ -15,12 +15,17 @@ let ipcRuntime: Awaited<ReturnType<typeof createMainIpcRuntime>> | null = null
 
 const gotInstanceLock = app.requestSingleInstanceLock()
 if (!gotInstanceLock) {
+  // TODO: 此处 app.quit() 后未提前退出，模块顶层逻辑仍会继续执行，
+  // 因 ES 模块顶层不支持 return，后续可考虑改为 app.quit() + process.exit(0)
+  // 或将启动流程包裹进函数以实现真正提前退出。
   app.quit()
 }
 
 process.on('uncaughtException', (error: unknown) => {
   console.error('[main] Uncaught exception', error)
   dialog.showErrorBox('Application Error', `${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease restart the app.`)
+  // 延迟退出以允许日志落盘。
+  setTimeout(() => app.quit(), 1000)
 })
 
 process.on('unhandledRejection', (reason: unknown) => {
@@ -127,19 +132,26 @@ function createWindow(): void {
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[renderer] Render process exited', details.reason)
 
-    void dialog.showMessageBox(mainWindow!, {
+    const win = mainWindow
+    if (!win || win.isDestroyed()) {
+      return
+    }
+
+    void dialog.showMessageBox(win, {
       type: 'error',
       title: 'Renderer Crashed',
       message: 'The renderer process exited unexpectedly.',
       detail: `Reason: ${details.reason}`,
       buttons: ['Reload', 'Close']
     }).then(({ response }) => {
-      if (response === 0 && mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.reload()
+      if (response === 0 && win && !win.isDestroyed()) {
+        win.webContents.reload()
         return
       }
 
-      mainWindow?.close()
+      win?.close()
+    }).catch((err: unknown) => {
+      console.error('[main] showMessageBox failed', err)
     })
   })
 
@@ -183,6 +195,42 @@ app.on('second-instance', () => {
 })
 
 app.whenReady().then(() => {
+  // 阻止任何 <webview> 标签附着，强制使用 BrowserWindow + preload 模型。
+  // TODO: 缺全局 will-navigate 兜底，当前未阻止渲染层导航到 file:// 或外部 http(s)。
+  // 后续建议在此对 contents.on('will-navigate') 做校验，仅允许同源 hash 路由跳转，
+  // 防止页面被导航到非预期来源。
+  app.on('web-contents-created', (_event, contents) => {
+    contents.on('will-attach-webview', (e) => e.preventDefault())
+  })
+
+  // 生产环境移除应用菜单，减少默认菜单带来的快捷键与暴露面。
+  // TODO: 生产环境检测逻辑不一致：此处用 NODE_ENV/DEV_SERVER_URL，
+  // 而 createWindow 中用 app.isPackaged 判断是否打开 DevTools。
+  // 建议统一使用 app.isPackaged 作为生产环境判定，避免环境变量未设置时误判。
+  const isProduction = process.env.NODE_ENV === 'production' || !DEV_SERVER_URL
+  if (isProduction) {
+    Menu.setApplicationMenu(null)
+  }
+
+  // 默认拒绝所有权限请求(摄像头/麦克风/通知等),本地应用不需要。
+  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+    callback(false)
+  })
+  // 同步权限校验同样默认拒绝,覆盖 navigator.permissions.query 等路径。
+  session.defaultSession.setPermissionCheckHandler(() => false)
+
+  // 网络层 CSP:在响应头注入统一策略,补充 base-uri/form-action/object-src。
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+        ]
+      }
+    })
+  })
+
   void bootstrapApplication().catch((error: unknown) => {
     console.error('[main] Failed to bootstrap application', error)
     dialog.showErrorBox('Startup Failed', error instanceof Error ? error.message : 'Unknown bootstrap error')
@@ -196,8 +244,29 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
-  ipcRuntime?.taskRegistry.cancelAll()
-  ipcRuntime?.bus.dispose()
-  ipcRuntime?.newWindowManager.saveAllState()
-  ipcRuntime?.closeDatabase()
+  try {
+    ipcRuntime?.taskRegistry.cancelAll()
+  } catch (err) {
+    console.error('[main] cancelAll failed during before-quit', err)
+  }
+  try {
+    ipcRuntime?.bus.dispose()
+  } catch (err) {
+    console.error('[main] bus.dispose failed during before-quit', err)
+  }
+  try {
+    ipcRuntime?.newWindowManager.saveAllState()
+  } catch (err) {
+    console.error('[main] saveAllState failed during before-quit', err)
+  }
+  try {
+    ipcRuntime?.closeDatabase()
+  } catch (err) {
+    console.error('[main] closeDatabase failed during before-quit', err)
+  }
+  try {
+    ipcRuntime?.xuanbingFileService.dispose()
+  } catch (err) {
+    console.error('[main] xuanbingFileService.dispose failed during before-quit', err)
+  }
 })

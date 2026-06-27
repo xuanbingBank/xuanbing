@@ -26,7 +26,7 @@ import type { DesktopUnsubscribe } from '../electron/ipcBus/renderer'
 /* ───────────────────────── Stores 初始化 ───────────────────────── */
 
 import { initStores } from './renderer/stores'
-import { useThemeStore } from './renderer/stores/theme.store'
+import { useThemeStore, destroyThemeStore } from './renderer/stores/theme.store'
 import { useAuthStore } from './renderer/stores/auth.store'
 import { usePermissionStore } from './renderer/stores/permission.store'
 import { useLayoutStore, initLayoutResizeListener } from './renderer/stores/layout.store'
@@ -46,6 +46,10 @@ import { BaseToast } from './renderer/components/base/BaseToast'
 
 import { buildPageTitle } from './renderer/utils/route'
 import { APP_INFO, ROUTE_PATHS } from './renderer/constants'
+
+/* ───────────────────────── 缓存清理 ───────────────────────── */
+
+import { startCacheCleaner, stopCacheCleaner } from './renderer/cache/cache-cleaner'
 
 /**
  * 根组件视图状态（setup 返回值在 this 上的展开类型）。
@@ -133,7 +137,6 @@ function bootstrap(): void {
       const currentRoute = Vue.ref<CurrentRoute>(router.getCurrentRoute())
 
       let routerUnsubscribe: DesktopUnsubscribe | null = null
-      let guardsInitialized = false
 
       /**
        * 执行路由守卫，根据结果更新当前路由或重定向。
@@ -144,26 +147,26 @@ function bootstrap(): void {
         // 同步窗口角色到 permission store
         if (currentWindow.role.value) {
           permissionStore.setWindowContext(
-            currentWindow.role.value as unknown as string,
-            currentWindow.permissions.value as unknown as string[]
+            currentWindow.role.value,
+            currentWindow.permissions.value
           )
-          tabStore.setWindowRole(currentWindow.role.value as unknown as string)
+          tabStore.setWindowRole(currentWindow.role.value)
         }
 
         // 同步窗口信息到 window store
         if (currentWindow.windowId.value) {
           windowStore.setWindowInfo({
-            windowId: currentWindow.windowId.value as unknown as number,
-            windowRole: currentWindow.role.value as unknown as string,
-            instanceKey: currentWindow.instanceKey.value as unknown as string
+            windowId: currentWindow.windowId.value,
+            windowRole: currentWindow.role.value,
+            instanceKey: currentWindow.instanceKey.value
           })
           windowStore.setInitialized()
         }
 
         const result = executeGuards(route, currentRoute.value, {
-          windowRole: currentWindow.role.value as unknown as string,
-          permissions: currentWindow.permissions.value as unknown as string[],
-          isAuthenticated: authStore.isLoggedIn.value as unknown as boolean
+          windowRole: currentWindow.role.value,
+          permissions: currentWindow.permissions.value,
+          isAuthenticated: authStore.isLoggedIn.value as boolean
         })
 
         if (result.redirect) {
@@ -200,14 +203,17 @@ function bootstrap(): void {
 
         // 标记应用就绪
         appStore.setReady(true)
+
+        // 启动缓存清理器，定期清理过期缓存
+        startCacheCleaner()
       })
 
-      // 监听窗口角色加载完成，执行初始路由守卫
+      // 监听窗口角色变化，权限到达后重跑守卫。
+      // 守卫内的导航只改变 hash/路由，不会改变 role，因此不会触发死循环。
       Vue.watch(
         () => currentWindow.role.value,
         ((newRole: unknown) => {
-          if (typeof newRole === 'string' && newRole !== '' && !guardsInitialized) {
-            guardsInitialized = true
+          if (typeof newRole === 'string' && newRole !== '') {
             runGuards(router.getCurrentRoute())
           }
         }) as (...args: unknown[]) => void
@@ -217,6 +223,12 @@ function bootstrap(): void {
         routerUnsubscribe?.()
         routerUnsubscribe = null
         cleanupResize()
+        // 销毁路由器，移除 hashchange 监听，避免泄漏
+        router.destroy()
+        // 停止缓存清理器，释放定时器
+        stopCacheCleaner()
+        // 销毁主题 Store，移除 mediaQuery change 监听，避免泄漏
+        destroyThemeStore()
       })
 
       /**
@@ -246,7 +258,7 @@ function bootstrap(): void {
         resolveLayout(currentRoute.value)
       )
 
-      // ?????????????????????
+      // 向子组件提供路由相关数据
       Vue.provide('currentRoute', currentRoute)
       Vue.provide('getPageComponent', () => pageComponent.value)
       Vue.provide('renderPage', () => pageComponent.value)
@@ -306,7 +318,7 @@ function bootstrap(): void {
   const app = Vue.createApp(rootComponent)
   app.component('BaseToast', BaseToast)
 
-  // ???????????????????? setup ?? Vue.provide ??????
+  // 在根 setup 之外通过 app.provide 提供路由实例
   app.provide('router', router)
 
   app.mount('#app')

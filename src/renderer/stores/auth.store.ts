@@ -76,15 +76,18 @@ export function createAuthStore(): AuthStore {
   /**
    * 占位登录实现（无实际认证后端）。
    *
-   * 生产环境应替换为真实 IPC 或 HTTP 调用。
+   * TODO: 接入真实鉴权（IPC 或 HTTP），校验密码并换取 token。
+   * 当前为占位实现，已移除"任意密码通过"的鉴权绕过，登录暂不可用。
+   * 下方保留 token 持久化逻辑，供真实登录启用后使用。
    */
   async function login(username: string, _password: string): Promise<AuthUser> {
     state.loginLoading = true
     state.loginError = null
     try {
-      // 模拟登录延迟
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // TODO: 接入真实鉴权，校验 _password 并换取 token
+      throw new Error('Login not implemented: 真实鉴权方案待接入')
 
+      // —— 以下为鉴权通过后的 token 持久化逻辑，供真实登录启用后使用 ——
       const user: AuthUser = {
         id: `user-${Date.now()}`,
         username,
@@ -95,6 +98,7 @@ export function createAuthStore(): AuthStore {
       const token = `desktop-session-${Date.now()}`
       state.token = token
       state.user = user
+      storage.set(STORAGE_KEYS.AUTH_TOKEN, state.token)
       storage.set(STORAGE_KEYS.AUTH_USER, user)
 
       return user
@@ -121,7 +125,14 @@ export function createAuthStore(): AuthStore {
    * 恢复会话（从本地存储读取 token 与用户）。
    */
   function restoreSession(): void {
-    // state 初始化时已读取，此处仅标记恢复完成
+    const token = storage.get<string | null>(STORAGE_KEYS.AUTH_TOKEN, null)
+    if (token) {
+      state.token = token
+    }
+    const user = storage.get<AuthUser | null>(STORAGE_KEYS.AUTH_USER, null)
+    if (user) {
+      state.user = user
+    }
     state.restored = true
   }
 

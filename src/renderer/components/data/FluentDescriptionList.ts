@@ -12,6 +12,7 @@
 
 import type { ComponentOptions } from '../../vue-global'
 import { cx } from '../../utils/fluent-class'
+import { escapeHtml } from '../../utils/escapeHtml'
 import { FluentEmpty } from '../base/FluentEmpty'
 
 /** 描述列表项 */
@@ -71,10 +72,14 @@ export const FluentDescriptionList: ComponentOptions = {
 
     /** 渲染值 */
     function renderValue(item: FluentDescriptionItem): string {
-      if (item.render) return item.render(item.value)
+      if (item.render) {
+        // render 语义为返回受信任 HTML 字符串，调用方需确保返回值已对动态内容转义
+        return item.render(item.value)
+      }
       const v = item.value
-      if (v === null || v === undefined || v === '') return p.emptyText
-      return String(v)
+      if (v === null || v === undefined || v === '') return escapeHtml(p.emptyText)
+      // 非 render 分支：对原始数据转义，避免 v-html XSS
+      return escapeHtml(String(v))
     }
 
     /** 是否空值 */
@@ -103,7 +108,7 @@ export const FluentDescriptionList: ComponentOptions = {
       >
         <div
           v-for="(item, index) in items"
-          :key="index"
+          :key="item.label || index"
           class="flex border-b border-r border-[var(--xb-border-subtle)] last:border-r-0"
           :style="{ gridColumn: item.span ? 'span ' + item.span : undefined }"
         >
@@ -124,7 +129,7 @@ export const FluentDescriptionList: ComponentOptions = {
       <div v-else class="flex flex-col gap-3">
         <div
           v-for="(item, index) in items"
-          :key="index"
+          :key="item.label || index"
           :class="[
             'flex flex-col gap-1',
             bordered ? 'border border-[var(--xb-border-subtle)] rounded-[var(--xb-radius-md)]' : ''

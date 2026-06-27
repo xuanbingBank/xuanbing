@@ -27,7 +27,7 @@ export const FormSwitch: ComponentOptions = {
     modelValue: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     label: { type: String, default: '' },
-    size: { type: Object as () => SwitchSize, default: 'md' }
+    size: { type: String as () => SwitchSize, default: 'md' }
   },
   emits: ['update:modelValue', 'change'],
   setup(props, ctx) {

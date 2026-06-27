@@ -37,7 +37,8 @@ export const FluentError: ComponentOptions = {
       if (typeof p.error === 'string') return p.error
       try {
         return JSON.stringify(p.error, null, 2)
-      } catch {
+      } catch (err) {
+        console.warn('[FluentError] JSON.stringify failed', err)
         return String(p.error)
       }
     })

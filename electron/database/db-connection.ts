@@ -41,8 +41,9 @@ export function openConnection(paths: DbPaths): DbConnection {
     return activeConnection
   }
 
+  let raw: Database.Database | null = null
   try {
-    const raw = new Database(paths.dbFile, {
+    raw = new Database(paths.dbFile, {
       verbose: undefined
     })
 
@@ -59,6 +60,15 @@ export function openConnection(paths: DbPaths): DbConnection {
 
     return activeConnection
   } catch (error) {
+    // new Database 成功后若 applyPragmas / drizzle 抛错，raw 已打开但未赋给
+    // activeConnection，需在此显式关闭以释放底层句柄，避免连接泄漏
+    if (raw) {
+      try {
+        raw.close()
+      } catch (closeErr) {
+        console.warn('[db-connection] close raw on open failure failed', closeErr)
+      }
+    }
     throwDbError('DB_CONNECTION_FAILED', 'Failed to open SQLite connection.', {
       retryable: true,
       severity: 'critical',
@@ -107,8 +117,9 @@ export function closeConnection(): void {
 
   try {
     activeConnection.raw.close()
-  } catch {
-    // 关闭失败不阻塞退出
+  } catch (err) {
+    // 关闭失败不阻塞退出，仅记录日志
+    console.warn('[db-connection] closeConnection close failed', err)
   }
 
   activeConnection.closed = true
@@ -139,7 +150,8 @@ export function isConnectionWritable(): boolean {
   try {
     conn.raw.prepare('SELECT 1').get()
     return true
-  } catch {
+  } catch (err) {
+    console.warn('[db-connection] isConnectionWritable check failed', err)
     return false
   }
 }
@@ -157,7 +169,8 @@ export function getDbFileSize(): number {
   try {
     const stat = fs.statSync(conn.dbFile)
     return stat.size
-  } catch {
+  } catch (err) {
+    console.warn('[db-connection] getDbFileSize failed', err)
     return 0
   }
 }

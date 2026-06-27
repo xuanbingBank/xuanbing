@@ -32,6 +32,11 @@ export class TaskService {
   /**
    * 创建任务（事务：创建任务 + 记录事件 + 审计）。
    *
+   * TODO: Repository 方法目前不接受事务上下文参数，无法在事务内调用 TaskRepository/
+   * AuditRepository。此处暂以原始 SQL 在事务内直接操作，待 Repository 接口支持事务
+   * 注入后重构为调用 Repository 方法。audit_logs 的 before/after 字段与
+   * AuditRepository.create 行为保持一致（create 操作 before 为 null）。
+   *
    * @param input 创建输入。
    * @param actorId 操作者 ID。
    * @returns 创建的任务。
@@ -60,10 +65,11 @@ export class TaskService {
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(generateId(), id, 'created', `Task created: ${input.title}`, serializeJson({ type: input.type }), now)
 
+      // 审计日志：before 字段为 null（新建任务无前置状态），与 AuditRepository.create 一致
       tx.prepare(`
-        INSERT INTO audit_logs (id, actor_type, actor_id, action, entity_type, entity_id, after, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(generateId(), 'system', actorId, 'create', 'task', id, serializeJson({ type: input.type, title: input.title }), now)
+        INSERT INTO audit_logs (id, actor_type, actor_id, action, entity_type, entity_id, before, after, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(generateId(), 'system', actorId, 'create', 'task', id, serializeJson(null), serializeJson({ type: input.type, title: input.title }), now)
 
       const row = tx.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as TaskRow
       return TaskRepository.deserializeTask(row)
@@ -72,6 +78,10 @@ export class TaskService {
 
   /**
    * 更新任务（事务：更新任务 + 记录事件 + 审计）。
+   *
+   * TODO: 与 create 同理，Repository 方法目前不接受事务上下文，此处以原始 SQL 在
+   * 事务内直接操作。audit_logs 已包含 before/after 字段，与 AuditRepository.create
+   * 行为一致。待 Repository 接口支持事务注入后重构。
    *
    * @param id 任务 ID。
    * @param input 更新输入。
@@ -208,14 +218,19 @@ export class TaskService {
     const result = this.taskRepo.delete(id)
 
     if (result) {
-      this.auditRepo.create({
-        actorType: 'system',
-        actorId,
-        action: 'delete',
-        entityType: 'task',
-        entityId: id,
-        metadata: { deletedAt: nowIso() }
-      })
+      // 审计日志写入失败不应影响删除结果，仅记录告警
+      try {
+        this.auditRepo.create({
+          actorType: 'system',
+          actorId,
+          action: 'delete',
+          entityType: 'task',
+          entityId: id,
+          metadata: { deletedAt: nowIso() }
+        })
+      } catch (err) {
+        console.warn('[task.service] audit create failed for delete', id, err)
+      }
     }
 
     return result

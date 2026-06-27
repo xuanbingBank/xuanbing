@@ -97,6 +97,8 @@ export async function getCache<T>(
     }
 
     if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+      // 读到过期条目，同步删除避免后续反复命中过期数据
+      await removeCache(namespace, key)
       return null
     }
 

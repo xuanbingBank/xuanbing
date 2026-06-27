@@ -6,6 +6,7 @@ import type { ComponentOptions } from '../../vue-global'
 import { BaseLoading } from '../base/BaseLoading'
 import { BaseEmpty } from '../base/BaseEmpty'
 import { BaseError } from '../base/BaseError'
+import { escapeHtml } from '../../utils/escapeHtml'
 
 /** 列对齐方式 */
 type ColumnAlign = 'left' | 'center' | 'right'
@@ -120,10 +121,12 @@ export const DataTable: ComponentOptions = {
     // 获取单元格内容（支持自定义渲染）
     function getCellContent(col: TableColumn, row: Record<string, unknown>, index: number): string {
       if (col.render) {
+        // render 语义为返回受信任 HTML 字符串，调用方需确保返回值已对动态内容转义
         return col.render(row, index)
       }
       const val = row[col.key]
-      return val == null ? '' : String(val)
+      // 非 render 分支：对原始数据转义，避免 v-html XSS
+      return val == null ? '' : escapeHtml(String(val))
     }
 
     // 全选切换

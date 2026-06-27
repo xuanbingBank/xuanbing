@@ -49,6 +49,7 @@ import {
   windowStateChangedEventSchema,
   xuanbingFileDialogRequestSchema,
   xuanbingFileDialogResponseSchema,
+  xuanbingFileRefSchema,
   xuanbingFileDryRunImportRequestSchema,
   xuanbingFileDryRunImportResponseSchema,
   xuanbingFileExportRequestSchema,
@@ -357,9 +358,14 @@ export const requestContracts = {
   }),
   [IPC_CHANNELS.databaseClearLogs]: defineRequestContract({
     channel: IPC_CHANNELS.databaseClearLogs,
-    description: '清理 app_logs 与 audit_logs 旧数据。',
+    description: '清理 app_logs 与 audit_logs 旧数据（清空全部需二次确认）。',
     permission: IPC_PERMISSIONS.databaseWrite,
-    inputSchema: z.object({ olderThanDays: z.number({ integer: true, min: 1 }).optional() }) as ZodSchema<{ olderThanDays?: number }>,
+    // 保留 as ZodSchema 断言：移除后 InferZodSchema 无法解析具体 ZodObject 类型，
+    // 会在 types.ts 的 InferRequestInput 中触发类型实例化错误。
+    inputSchema: z.object({
+      olderThanDays: z.number({ integer: true, min: 1 }).optional(),
+      confirm: z.boolean().optional()
+    }) as ZodSchema<{ olderThanDays?: number; confirm?: boolean }>,
     outputSchema: dbClearLogsResponseSchema,
     timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
@@ -411,6 +417,7 @@ export const requestContracts = {
     description: '按 ID 删除任务数据。',
     permission: IPC_PERMISSIONS.taskDataWrite,
     inputSchema: taskDataByIdRequestSchema,
+    // 保留 as ZodSchema 断言：同上，避免 InferRequestOutput 类型实例化失败。
     outputSchema: z.object({ deleted: z.boolean() }) as ZodSchema<{ deleted: boolean }>,
     timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
@@ -424,7 +431,7 @@ export const requestContracts = {
     description: '按 namespace+key 获取设置项。',
     permission: IPC_PERMISSIONS.settingRead,
     inputSchema: settingGetRequestSchema,
-    outputSchema: settingItemSchema.nullable() as ZodSchema<unknown>,
+    outputSchema: settingItemSchema.nullable(),
     timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
   }),
@@ -452,6 +459,7 @@ export const requestContracts = {
     description: '按 namespace+key 删除设置项。',
     permission: IPC_PERMISSIONS.settingWrite,
     inputSchema: settingGetRequestSchema,
+    // 保留 as ZodSchema 断言：同上，避免 InferRequestOutput 类型实例化失败。
     outputSchema: z.object({ deleted: z.boolean() }) as ZodSchema<{ deleted: boolean }>,
     timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
@@ -484,7 +492,7 @@ export const requestContracts = {
     channel: IPC_CHANNELS.xuanbingFileReadPreview,
     description: '读取 .xuanbing 文件预览（不返回 payload）。',
     permission: IPC_PERMISSIONS.xuanbingFileRead,
-    inputSchema: z.object({ fileRef: z.unknown() }) as ZodSchema<{ fileRef: unknown }>,
+    inputSchema: z.object({ fileRef: xuanbingFileRefSchema }),
     outputSchema: xuanbingFilePreviewResponseSchema,
     timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES
@@ -493,7 +501,7 @@ export const requestContracts = {
     channel: IPC_CHANNELS.xuanbingFileValidate,
     description: '校验 .xuanbing 文件合法性。',
     permission: IPC_PERMISSIONS.xuanbingFileRead,
-    inputSchema: z.object({ fileRef: z.unknown() }) as ZodSchema<{ fileRef: unknown }>,
+    inputSchema: z.object({ fileRef: xuanbingFileRefSchema }),
     outputSchema: xuanbingFileValidateResponseSchema,
     timeoutMs: DEFAULT_IPC_TIMEOUT_MS,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES

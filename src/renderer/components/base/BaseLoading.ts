@@ -29,8 +29,8 @@ const sizeMap: Record<LoadingSize, string> = {
 export const BaseLoading: ComponentOptions = {
   name: 'BaseLoading',
   props: {
-    type: { type: Object as () => LoadingType, default: 'spinner' },
-    size: { type: Object as () => LoadingSize, default: 'md' },
+    type: { type: String as () => LoadingType, default: 'spinner' },
+    size: { type: String as () => LoadingSize, default: 'md' },
     text: { type: String, default: '加载中...' },
     inline: { type: Boolean, default: false }
   },

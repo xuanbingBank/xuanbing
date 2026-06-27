@@ -71,8 +71,8 @@ function approximateByteSize(value: unknown): number {
  * @param options 打开参数。
  * @param senderWindowId 发起方窗口 ID（仅用于日志上下文）。
  * @param environment 当前环境。
- * @param existingCount ???????????
- * @param allowExistingInstance ?????????????????????
+ * @param existingCount 当前角色已存在的窗口数量。
+ * @param allowExistingInstance 是否允许复用已存在的同角色实例。
  * @returns 校验结果。
  */
 export function validateOpenRequest(

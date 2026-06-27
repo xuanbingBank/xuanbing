@@ -132,6 +132,7 @@ export function useTable<T extends Record<string, unknown>>(
   const state = defineState({
     data: initialData as T[],
     loading: false,
+    error: null as string | null,
     sort: { field: '', order: null } as SortState,
     pagination: {
       current: 1,
@@ -187,19 +188,32 @@ export function useTable<T extends Record<string, unknown>>(
     return state.data.slice(start, end)
   }
 
+  // 请求序号，用于丢弃过期响应，避免并发刷新竞态
+  let refreshSeq = 0
+
   async function refresh(): Promise<void> {
     if (serverSide && fetchData) {
+      const seq = ++refreshSeq
       state.loading = true
+      state.error = null
       try {
         const result = await fetchData({
           current: state.pagination.current,
           pageSize: state.pagination.pageSize,
           sort: state.sort
         })
+        // 丢弃过期响应：期间已有更新的 refresh 触发
+        if (seq !== refreshSeq) return
         state.data = result.data
         state.pagination.total = result.total
+      } catch (err) {
+        if (seq !== refreshSeq) return
+        state.error = err instanceof Error ? err.message : String(err)
       } finally {
-        state.loading = false
+        // 仅当前最新请求负责复位 loading，避免覆盖更新请求的 loading 状态
+        if (seq === refreshSeq) {
+          state.loading = false
+        }
       }
     } else {
       applyLocalSort()

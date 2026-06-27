@@ -35,7 +35,7 @@ const defaultIconMap: Record<AlertType, string> = {
 export const BaseAlert: ComponentOptions = {
   name: 'BaseAlert',
   props: {
-    type: { type: Object as () => AlertType, default: 'info' },
+    type: { type: String as () => AlertType, default: 'info' },
     title: { type: String, default: '' },
     description: { type: String, default: '' },
     closable: { type: Boolean, default: false },

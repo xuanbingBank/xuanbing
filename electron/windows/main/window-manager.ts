@@ -183,6 +183,20 @@ interface InternalWindowRecord {
 const INIT_TOKEN_CHANNEL = 'window:init-token'
 
 /**
+ * 校验外部 URL 协议是否在白名单内（仅放行 http/https/mailto）。
+ *
+ * 用于在调用 shell.openExternal 前做协议白名单校验，避免 file:/自定义协议等被打开。
+ */
+function isSafeExternalUrl(url: string): boolean {
+  try {
+    const protocol = new URL(url).protocol
+    return protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:'
+  } catch {
+    return false
+  }
+}
+
+/**
  * 窗口管理器。
  */
 export class WindowManager {
@@ -1083,11 +1097,25 @@ export class WindowManager {
       if (typeof preventDefault === 'function') {
         preventDefault.call(event)
       }
-      if (this.shellOpenExternal) {
+      if (this.shellOpenExternal && isSafeExternalUrl(url)) {
         this.shellOpenExternal(url)
       } else {
         console.warn(`[window-manager] blocked external navigation for role "${role}":`, url)
       }
+    })
+
+    webContents.on('will-redirect', (event: unknown, url: unknown) => {
+      if (typeof url !== 'string') {
+        return
+      }
+      if (this.urlResolver.isInternalUrl(url)) {
+        return
+      }
+      const preventDefault = (event as { preventDefault?: () => void }).preventDefault
+      if (typeof preventDefault === 'function') {
+        preventDefault.call(event)
+      }
+      console.warn(`[window-manager] blocked external redirect for role "${role}":`, url)
     })
   }
 

@@ -20,6 +20,15 @@ export interface VueApp {
 }
 
 /**
+ * setup 上下文类型，Vue 在调用 setup 时传入的上下文对象。
+ */
+export interface SetupCtx {
+  emit: (event: string, ...args: unknown[]) => void
+  attrs: Record<string, unknown>
+  slots: Record<string, unknown>
+}
+
+/**
  * Vue 组件选项类型（Options API + setup 混合）。
  */
 export interface ComponentOptions {
@@ -28,6 +37,8 @@ export interface ComponentOptions {
   props?: Record<string, unknown> | string[]
   data?(): object
   computed?: Record<string, () => unknown>
+  // 保留 any[]：methods 的参数签名随组件变化（如 navigate(path: string)），
+  // 改为 unknown[] 会因参数逆变导致带具体参数的方法无法赋值，故维持原状。
   methods?: Record<string, (...args: any[]) => unknown>
   mounted?(): void | Promise<void>
   beforeUnmount?(): void
@@ -36,7 +47,7 @@ export interface ComponentOptions {
   provide?: Record<string, unknown>
   inject?: string[] | Record<string, string>
   emits?: string[]
-  setup?(props: Record<string, unknown>, ctx: unknown): Record<string, unknown>
+  setup?(props: Record<string, unknown>, ctx: SetupCtx): Record<string, unknown>
 }
 
 /**
@@ -47,17 +58,23 @@ export interface VueGlobal {
   ref<T>(value: T): Ref<T>
   reactive<T>(obj: T): T
   computed<T>(getter: () => T): Ref<T>
+  computed<T>(options: { get: () => T; set: (value: T) => void }): Ref<T>
   watch(source: unknown, callback: (...args: unknown[]) => void, options?: Record<string, unknown>): () => void
   onMounted(callback: () => void): void
   onBeforeUnmount(callback: () => void): void
   onUnmounted(callback: () => void): void
-  inject<T>(key: string): T
+  /**
+   * 按注入键获取祖先组件 provide 的值，未命中时返回 undefined。
+   */
+  inject<T>(key: string): T | undefined
   provide(key: string, value: unknown): void
   nextTick(callback?: () => void): Promise<void>
   isRef(obj: unknown): boolean
   unref<T>(obj: T | Ref<T>): T
   toRaw<T>(obj: T): T
   h(type: unknown, props?: unknown, children?: unknown): unknown
+  watchEffect(fn: () => void): () => void
+  toRefs<T>(obj: T): { [K in keyof T]: Ref<T[K]> }
 }
 
 declare global {

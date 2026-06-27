@@ -43,7 +43,10 @@ export function computedRef<T>(getter: () => T): Ref<T> {
  */
 export function writableComputed<T>(getter: () => T, setter: (value: T) => void): Ref<T> {
   // Vue CDN 全局对象支持 { get, set } 形式
-  return Vue.computed(getter) as unknown as Ref<T>
+  return Vue.computed({
+    get: getter,
+    set: setter
+  }) as unknown as Ref<T>
 }
 
 /**
@@ -62,7 +65,8 @@ export const storage = {
       const raw = localStorage.getItem(key)
       if (raw === null) return fallback
       return JSON.parse(raw) as T
-    } catch {
+    } catch (err) {
+      console.warn('[storage] op failed', err)
       return fallback
     }
   },
@@ -89,7 +93,8 @@ export const storage = {
   remove(key: string): void {
     try {
       localStorage.removeItem(key)
-    } catch {
+    } catch (err) {
+      console.warn('[storage] op failed', err)
       // 忽略
     }
   }

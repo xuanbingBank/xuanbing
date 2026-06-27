@@ -64,13 +64,23 @@ export function useContextMenu(): UseContextMenuReturn {
       if (e.key === 'Escape') hide()
     }
     // 延迟绑定，避免触发当前右键事件的 click
+    let registered = false
+    let pending = true
     setTimeout(() => {
+      // cleanup 在 setTimeout 触发前已调用，则取消绑定
+      if (!pending) return
       window.addEventListener('click', clickHandler)
       window.addEventListener('keydown', keyHandler)
+      registered = true
     }, 0)
     return () => {
-      window.removeEventListener('click', clickHandler)
-      window.removeEventListener('keydown', keyHandler)
+      pending = false
+      // 仅当 listener 已注册时移除，避免移除尚未加入的 listener（后续加入后永不移除）
+      if (registered) {
+        window.removeEventListener('click', clickHandler)
+        window.removeEventListener('keydown', keyHandler)
+        registered = false
+      }
     }
   }
 

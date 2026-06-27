@@ -21,15 +21,14 @@
         "drizzle-orm": "^0.45.2",
         "electron": "^42.4.1",
         "tailwindcss": "^4.3.1",
-        "typescript": "^6.0.3",
         "vue": "^3.5.38",
-        "vuex": "^4.1.0",
         "zod": "^4.1.12"
     },
     "devDependencies": {
         "@electron/rebuild": "^4.0.4",
         "@types/better-sqlite3": "^7.6.13",
         "@types/node": "^26.0.0",
-        "drizzle-kit": "^0.31.10"
+        "drizzle-kit": "^0.31.10",
+        "typescript": "^6.0.3"
     }
 }

@@ -62,6 +62,42 @@ export function readPragmas(db: Database.Database): {
 }
 
 /**
+ * 把 SQLite 返回的 synchronous 值统一映射为小写字符串。
+ *
+ * SQLite 的 PRAGMA synchronous 读取时返回整数（0=OFF、1=NORMAL、2=FULL、3=EXTRA），
+ * 而非字符串。直接 String(...) 后与 'normal' 比较恒不等，导致健康检查误报。
+ *
+ * @param val 从 PRAGMA synchronous 读取的值（数字 / 数字字符串 / 字符串）。
+ * @returns 规范化的小写字符串（'off' | 'normal' | 'full' | 'extra' 或原始小写字符串）。
+ */
+export function mapSynchronousValue(val: unknown): string {
+  if (typeof val === 'number') {
+    switch (val) {
+      case 0: return 'off'
+      case 1: return 'normal'
+      case 2: return 'full'
+      case 3: return 'extra'
+      default: return String(val).toLowerCase()
+    }
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim()
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed)
+      switch (num) {
+        case 0: return 'off'
+        case 1: return 'normal'
+        case 2: return 'full'
+        case 3: return 'extra'
+        default: return trimmed.toLowerCase()
+      }
+    }
+    return trimmed.toLowerCase()
+  }
+  return String(val ?? '').toLowerCase()
+}
+
+/**
  * 校验关键 PRAGMA 是否符合预期。
  *
  * @param db better-sqlite3 数据库实例。
@@ -74,8 +110,8 @@ export function validatePragmas(db: Database.Database): string[] {
   if (current.journalMode.toLowerCase() !== EXPECTED_PRAGMAS.journalMode) {
     mismatches.push(`journal_mode: expected ${EXPECTED_PRAGMAS.journalMode}, got ${current.journalMode}`)
   }
-  if (current.synchronous.toLowerCase() !== EXPECTED_PRAGMAS.synchronous) {
-    mismatches.push(`synchronous: expected ${EXPECTED_PRAGMAS.synchronous}, got ${current.synchronous}`)
+  if (mapSynchronousValue(current.synchronous) !== EXPECTED_PRAGMAS.synchronous) {
+    mismatches.push(`synchronous: expected ${EXPECTED_PRAGMAS.synchronous}, got ${mapSynchronousValue(current.synchronous)}`)
   }
   if (current.foreignKeys !== EXPECTED_PRAGMAS.foreignKeys) {
     mismatches.push(`foreign_keys: expected ${EXPECTED_PRAGMAS.foreignKeys}, got ${current.foreignKeys}`)

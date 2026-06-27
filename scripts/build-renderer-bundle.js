@@ -372,10 +372,10 @@ function buildBundle(config) {
  * tsc 只编译 .ts 文件，.sql 资源文件需要手动复制。
  */
 /**
- * ?????????
+ * 递归复制目录。
  *
- * @param {string} srcDir ????
- * @param {string} destDir ?????
+ * @param {string} srcDir 源目录。
+ * @param {string} destDir 目标目录。
  */
 function copyDirectoryRecursive(srcDir, destDir) {
   if (!fs.existsSync(srcDir)) {
@@ -400,10 +400,10 @@ function copyDirectoryRecursive(srcDir, destDir) {
 }
 
 /**
- * ????????????
+ * 复制运行时资源文件。
  *
- * @param {string} srcFile ????
- * @param {string} destFile ?????
+ * @param {string} srcFile 源文件。
+ * @param {string} destFile 目标文件。
  */
 function copyRuntimeFile(srcFile, destFile) {
   if (!fileExists(srcFile)) {
@@ -415,9 +415,9 @@ function copyRuntimeFile(srcFile, destFile) {
 }
 
 /**
- * ??????????? dist?
+ * 复制渲染层运行时资源到 dist。
  *
- * HTML ????? dist ????????????????? CDN?src ????? node_modules ???
+ * 包括渲染层样式目录以及来自 node_modules 的 daisyui 等依赖资源。
  */
 function copyRendererRuntimeAssets() {
   copyDirectoryRecursive(

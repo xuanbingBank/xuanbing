@@ -33,7 +33,7 @@ export const FormTextarea: ComponentOptions = {
     disabled: { type: Boolean, default: false },
     readonly: { type: Boolean, default: false },
     error: { type: Boolean, default: false },
-    resize: { type: Object as () => ResizeType, default: 'vertical' }
+    resize: { type: String as () => ResizeType, default: 'vertical' }
   },
   emits: ['update:modelValue', 'blur'],
   setup(props, ctx) {

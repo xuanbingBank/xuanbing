@@ -13,7 +13,6 @@
  */
 
 import fs from 'node:fs'
-import path from 'node:path'
 import { getConnection, getConnectionOrNull, getDbFileSize, getPragmaSnapshot } from './db-connection'
 import { validatePragmas } from './db-pragmas'
 import { hasPendingMigrations, getSchemaVersion } from './db-migrator'
@@ -123,7 +122,8 @@ export function checkHealth(
           if (integrityResult !== 'ok') {
             issues.push(`integrity_check: ${integrityResult}`)
           }
-        } catch {
+        } catch (err) {
+          console.warn('[db-health] integrity_check failed', err)
           integrityResult = 'error'
           issues.push('integrity_check failed')
         }
@@ -177,15 +177,14 @@ export function getDatabaseStats(): Record<string, number> {
   const stats: Record<string, number> = {}
   for (const table of tables) {
     try {
+      // table 来自硬编码白名单数组,无注入风险
       const row = conn.raw.prepare(`SELECT COUNT(*) as c FROM ${table}`).get() as { c: number }
       stats[table] = row.c
-    } catch {
+    } catch (err) {
+      console.warn('[db-health] table count failed', err)
       stats[table] = -1
     }
   }
 
   return stats
 }
-
-// 引入 path 避免未使用警告
-void path

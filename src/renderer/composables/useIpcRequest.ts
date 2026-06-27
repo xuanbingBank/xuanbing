@@ -49,6 +49,13 @@ export function useIpcRequest<TData, TInput = void>(
     status: 'idle' as RequestStatus
   })
 
+  // 请求序号，用于丢弃过期响应；卸载标志，避免写入已卸载组件的 state
+  let executeSeq = 0
+  let isUnmounted = false
+  Vue.onBeforeUnmount(() => {
+    isUnmounted = true
+  })
+
   const data = computedRef<TData | null>(() => state.data)
   const error = computedRef<AppError | null>(() => state.error)
   const status = computedRef<RequestStatus>(() => state.status)
@@ -57,14 +64,18 @@ export function useIpcRequest<TData, TInput = void>(
   const isError = computedRef<boolean>(() => state.status === 'error')
 
   async function execute(input: TInput): Promise<TData> {
+    const seq = ++executeSeq
     state.status = 'loading'
     state.error = null
     try {
       const result = await fn(input)
+      // 卸载或已有更新请求：不写入 state，避免竞态覆盖与卸载后写入
+      if (isUnmounted || seq !== executeSeq) return result
       state.data = result
       state.status = 'success'
       return result
     } catch (err) {
+      if (isUnmounted || seq !== executeSeq) throw err
       state.error = normalizeError(err)
       state.status = 'error'
       throw err

@@ -73,7 +73,10 @@ export function createPermissionStore(): PermissionStore {
     initialized: false
   })
 
-  /** 合并用户权限与窗口权限（去重） */
+  /**
+   * 合并用户权限与窗口权限（去重）。
+   * 频繁访问可能触发重算,TODO: 缓存计算结果。
+   */
   const allPermissions = computedRef<string[]>(() => {
     const set = new Set<string>([...state.permissions, ...state.windowPermissions])
     return Array.from(set)

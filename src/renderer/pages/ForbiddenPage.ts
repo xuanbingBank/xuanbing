@@ -4,6 +4,7 @@
 
 import type { ComponentOptions } from '../vue-global'
 import type { CurrentRoute, RouteMeta } from '../router/types'
+import { ROUTE_PATHS } from '../constants'
 import { BaseButton } from '../components/base/BaseButton'
 
 /** 页面 Props */
@@ -24,9 +25,16 @@ export const ForbiddenPage: ComponentOptions = {
     route: { type: Object, default: () => ({}) }
   },
   setup() {
+    // 注入路由器
+    const router = Vue.inject<{ navigate: (path: string) => void }>('router')
+
     // 返回首页
     function goHome(): void {
-      window.location.hash = '#/'
+      if (router) {
+        router.navigate(ROUTE_PATHS.HOME)
+      } else {
+        console.warn('[ForbiddenPage] router 未注入，无法返回首页')
+      }
     }
     return { goHome }
   },

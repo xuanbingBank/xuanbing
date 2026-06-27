@@ -3,7 +3,7 @@
  */
 
 import { sql } from 'drizzle-orm'
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
 
 /**
  * window_states：窗口位置、大小、状态持久化。
@@ -20,8 +20,7 @@ export const windowStates = sqliteTable('window_states', {
   customState: text('custom_state'),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
-})
-
-/**
- * window_states 唯一约束：role + instance_key（见 migration DDL）。
- */
+}, (table) => ({
+  // role + instance_key 唯一约束（与 migration DDL 中的 UNIQUE 一致）
+  roleInstanceKeyUnique: unique('role_instance_key_unique').on(table.role, table.instanceKey)
+}))

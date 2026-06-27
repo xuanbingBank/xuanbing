@@ -37,7 +37,7 @@ export const FormSelect: ComponentOptions = {
     options: { type: Array, default: () => [] },
     placeholder: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
-    size: { type: Object as () => SelectSize, default: 'md' },
+    size: { type: String as () => SelectSize, default: 'md' },
     error: { type: Boolean, default: false }
   },
   emits: ['update:modelValue', 'change'],

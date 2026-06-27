@@ -59,11 +59,7 @@ export const FluentSearchForm: ComponentOptions = {
       collapsed.value = !collapsed.value
     }
 
-    function handleSearch(): void {
-      // 触发 emit
-    }
-
-    return { collapsed, toggleCollapse, handleSearch, cx }
+    return { collapsed, toggleCollapse, cx }
   },
   template: `
     <div :class="inline ? '' : 'bg-[var(--xb-bg-surface)] rounded-[var(--xb-radius-lg)] border border-[var(--xb-border-subtle)] p-4 mb-4'">

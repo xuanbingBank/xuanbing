@@ -83,7 +83,7 @@ export type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[number]
 /**
  * 审计操作类型。
  */
-export const AUDIT_ACTIONS = ['create', 'update', 'delete', 'restore', 'export', 'import', 'backup', 'restore-db', 'login', 'logout'] as const
+export const AUDIT_ACTIONS = ['create', 'update', 'delete', 'restore', 'export', 'import', 'backup', 'restore-db', 'login', 'logout', 'invoke'] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
 /**

@@ -4,7 +4,7 @@
  * 不包含菜单与布局状态（分别由 menu.store / layout.store 管理）。
  */
 
-import { defineState, computedRef, registerStore } from './base'
+import { defineState, registerStore } from './base'
 import type { StoreBase } from './base'
 
 /**
@@ -144,6 +144,3 @@ export function useUiStore(): UiStore {
   }
   return uiStoreInstance
 }
-
-// 保留 computedRef 引用以避免未使用警告
-void computedRef

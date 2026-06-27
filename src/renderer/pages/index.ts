@@ -429,6 +429,8 @@ export const HomePage: ComponentOptions = {
 interface DetailPageView {
   detailText: string
   loading: boolean
+  /** 组件是否已卸载，防止 async mounted 在卸载后竞态写入 */
+  unmounted: boolean
 }
 
 /**
@@ -445,34 +447,42 @@ export const DetailPage: ComponentOptions = {
   data(): DetailPageView {
     return {
       detailText: '',
-      loading: true
+      loading: true,
+      unmounted: false
     }
   },
   async mounted(this: DetailPageView & PageProps): Promise<void> {
     const id = this.params.id || 'unknown'
     try {
       await new Promise((resolve) => setTimeout(resolve, 200))
+      if (this.unmounted) return
       this.detailText = `正在展示 ID 为 ${id} 的详情内容。查询参数: ${JSON.stringify(this.query)}`
     } catch (error) {
       console.warn('[index] load detail failed', error)
+      if (this.unmounted) return
       this.detailText = `加载详情失败: ${formatError(error)}`
     } finally {
-      this.loading = false
+      if (!this.unmounted) {
+        this.loading = false
+      }
     }
+  },
+  beforeUnmount(this: DetailPageView): void {
+    this.unmounted = true
   },
   methods: {
     async closeWindow(this: DetailPageView): Promise<void> {
       try {
         await useWindowControls().close()
-      } catch {
-        // 忽略关闭错误
+      } catch (error) {
+        console.warn('[index] closeWindow failed', error)
       }
     },
     async openAnother(this: DetailPageView & PageProps): Promise<void> {
       try {
         await useOpenWindow().openDetail(`${this.params.id}-next`)
-      } catch {
-        // 忽略打开错误
+      } catch (error) {
+        console.warn('[index] openAnother failed', error)
       }
     }
   },
@@ -579,7 +589,7 @@ export const LogViewerPage: ComponentOptions = {
         <div
           class="log-item"
           v-for="(log, index) in logs"
-          :key="index + '-' + log.timestamp"
+          :key="log.id || (log.timestamp + '-' + log.level)"
           v-show="filter === 'all' || log.level === filter"
         >
           <span class="log-time">{{ log.timestamp }}</span>

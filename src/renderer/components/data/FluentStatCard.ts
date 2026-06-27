@@ -87,13 +87,6 @@ const colorMap: Record<FluentStatColor, { bg: string; text: string; ring: string
   }
 }
 
-/** 趋势图标映射 */
-const trendIconMap: Record<FluentStatTrend, string> = {
-  up: 'arrowRight',
-  down: 'arrowRight',
-  flat: 'arrowRight'
-}
-
 export const FluentStatCard: ComponentOptions = {
   name: 'FluentStatCard',
   components: { FluentIcon, FluentSkeleton },

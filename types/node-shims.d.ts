@@ -1,7 +1,8 @@
 /**
- * @file Ϊ��ǰ�ֿ��ṩ��С���õ� Node ����ʱ�������������� IPC �����ڼ䱻ȫ�� Node ��������������
+ * @file 为当前工作区提供的最小化 Node 运行时类型声明，避免 IPC 实现期间被全局 Node 类型污染。
  */
 
+// TODO: 评估用 @types/node 替代 shim
 declare module 'node:fs' {
   interface NodeFsModule {
     existsSync(path: string): boolean
@@ -9,7 +10,8 @@ declare module 'node:fs' {
     readFileSync(path: string): Buffer
     writeFileSync(path: string, data: string): void
     mkdirSync(path: string, options?: { recursive?: boolean }): string | undefined
-    statSync(path: string): { size: number; mtimeMs: number; mtime: Date; isFile(): boolean; isDirectory(): boolean }
+    statSync(path: string): { size: number; mtimeMs: number; mtime: Date; isFile(): boolean; isDirectory(): boolean; isSymbolicLink(): boolean }
+    lstatSync(path: string): { size: number; mtimeMs: number; mtime: Date; isFile(): boolean; isDirectory(): boolean; isSymbolicLink(): boolean }
     readdirSync(path: string): string[]
     unlinkSync(path: string): void
     copyFileSync(src: string, dest: string): void
@@ -58,7 +60,9 @@ declare module 'fs' {
   /** 按文本编码写入文件。 */
   export function writeFileSync(path: string, data: string, encoding?: string): void
   /** 获取文件状态。 */
-  export function statSync(path: string): { size: number; mtimeMs: number; mtime: Date; isFile(): boolean; isDirectory(): boolean }
+  export function statSync(path: string): { size: number; mtimeMs: number; mtime: Date; isFile(): boolean; isDirectory(): boolean; isSymbolicLink(): boolean }
+  /** 获取文件状态（不跟随符号链接）。 */
+  export function lstatSync(path: string): { size: number; mtimeMs: number; mtime: Date; isFile(): boolean; isDirectory(): boolean; isSymbolicLink(): boolean }
   /** 读取目录内容。 */
   export function readdirSync(path: string): string[]
   /** 删除文件。 */
@@ -128,4 +132,3 @@ declare const process: {
 }
 
 declare function require(moduleId: string): unknown
-

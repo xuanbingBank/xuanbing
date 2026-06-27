@@ -25,15 +25,20 @@ export class SettingService {
     const existing = this.settingRepo.get(input.namespace, input.key)
     const row = this.settingRepo.set(input)
 
-    this.auditRepo.create({
-      actorType: 'system',
-      actorId,
-      action: existing ? 'update' : 'create',
-      entityType: 'setting',
-      entityId: `${input.namespace}:${input.key}`,
-      before: existing ? { value: existing.value } : null,
-      after: { value: row.value }
-    })
+    // 审计日志写入失败不应回滚已提交的设置值（避免业务受阻），仅记录告警
+    try {
+      this.auditRepo.create({
+        actorType: 'system',
+        actorId,
+        action: existing ? 'update' : 'create',
+        entityType: 'setting',
+        entityId: `${input.namespace}:${input.key}`,
+        before: existing ? { value: existing.value } : null,
+        after: { value: row.value }
+      })
+    } catch (err) {
+      console.warn('[setting.service] audit create failed for set', `${input.namespace}:${input.key}`, err)
+    }
 
     return SettingRepository.deserialize(row)
   }
@@ -81,14 +86,19 @@ export class SettingService {
     const result = this.settingRepo.delete(namespace, key)
 
     if (result) {
-      this.auditRepo.create({
-        actorType: 'system',
-        actorId,
-        action: 'delete',
-        entityType: 'setting',
-        entityId: `${namespace}:${key}`,
-        metadata: { deletedAt: nowIso() }
-      })
+      // 审计日志写入失败不应影响删除结果，仅记录告警
+      try {
+        this.auditRepo.create({
+          actorType: 'system',
+          actorId,
+          action: 'delete',
+          entityType: 'setting',
+          entityId: `${namespace}:${key}`,
+          metadata: { deletedAt: nowIso() }
+        })
+      } catch (err) {
+        console.warn('[setting.service] audit create failed for delete', `${namespace}:${key}`, err)
+      }
     }
 
     return result

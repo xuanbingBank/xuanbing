@@ -4,6 +4,7 @@
 
 import type { ComponentOptions } from '../vue-global'
 import type { CurrentRoute, RouteMeta } from '../router/types'
+import { ROUTE_PATHS } from '../constants'
 import { BaseButton } from '../components/base/BaseButton'
 import { FormField } from '../components/form/FormField'
 import { FormInput } from '../components/form/FormInput'
@@ -28,6 +29,8 @@ export const LoginPage: ComponentOptions = {
   },
   setup() {
     const authStore = useAuthStore()
+    // 注入路由器
+    const router = Vue.inject<{ navigate: (path: string) => void }>('router')
 
     // 用户名
     const username = Vue.ref('')
@@ -49,7 +52,11 @@ export const LoginPage: ComponentOptions = {
       try {
         await authStore.login(username.value, password.value)
         // 登录成功后跳转到仪表盘
-        window.location.hash = '#/dashboard'
+        if (router) {
+          router.navigate(ROUTE_PATHS.DASHBOARD)
+        } else {
+          console.warn('[LoginPage] router 未注入，无法跳转仪表盘')
+        }
       } catch (e) {
         error.value = e instanceof Error ? e.message : '登录失败'
       } finally {
@@ -69,7 +76,7 @@ export const LoginPage: ComponentOptions = {
       </FormField>
       <BaseButton block :loading="loading" @click="handleLogin">登录</BaseButton>
       <p v-if="error" class="text-error text-sm text-center">{{ error }}</p>
-      <div class="text-center text-xs text-base-content/40">提示：任意用户名密码即可登录（演示）</div>
+      <div class="text-center text-xs text-base-content/40">提示：登录功能尚未实现（演示页）</div>
     </div>
   `
 }

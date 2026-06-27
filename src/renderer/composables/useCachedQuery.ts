@@ -103,7 +103,8 @@ export function useCachedQuery<T>(
       if (strategy === 'networkFirst') {
         try {
           return await fetchFromNetwork()
-        } catch {
+        } catch (err) {
+          console.warn('[useCachedQuery] network failed, fallback to cache', err)
           const cached = await getCache<T>(namespace, key, policy.version)
           if (cached !== null) {
             state.data = cached
@@ -125,17 +126,26 @@ export function useCachedQuery<T>(
       // staleWhileRevalidate
       const { getCacheEntry } = await import('../cache/cache-store')
       const entry = await getCacheEntry(namespace, key)
+      const hasStale = !!(entry && entry.value !== null && entry.value !== undefined)
+      const expired = entry ? isExpired(entry as { expiresAt: number | null }) : false
 
-      if (entry && entry.value !== null && entry.value !== undefined) {
-        const expired = isExpired(entry as { expiresAt: number | null })
-        if (!expired) {
-          state.data = entry.value as T
-          void backgroundRefresh()
-          return entry.value as T
-        }
+      if (hasStale && !expired) {
+        state.data = entry.value as T
+        void backgroundRefresh()
+        return entry.value as T
       }
 
-      return await fetchFromNetwork()
+      try {
+        return await fetchFromNetwork()
+      } catch (err) {
+        // 网络失败时回退到过期 stale 缓存（若有），避免无数据可用
+        if (hasStale && expired) {
+          console.warn('[useCachedQuery] network failed, returning stale cache', err)
+          state.data = entry.value as T
+          return entry.value as T
+        }
+        throw err
+      }
     } catch (err) {
       state.error = err instanceof Error ? err : new Error(String(err))
       throw err

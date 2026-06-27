@@ -126,13 +126,27 @@ export const getInitPayloadResponseSchema = z.object({
 })
 
 /**
+ * 当前窗口权限的布尔摘要 schema，渲染层可按能力判断而非直接消费原始权限字符串。
+ */
+export const permissionsSummarySchema = z.object({
+  canOpenWindow: z.boolean(),
+  canControlWindow: z.boolean(),
+  canReadDatabase: z.boolean(),
+  canBackupDatabase: z.boolean(),
+  canManageSettings: z.boolean(),
+  canManageTasks: z.boolean(),
+  canManageFiles: z.boolean()
+})
+
+/**
  * 获取当前窗口信息响应 schema。
  */
 export const getCurrentWindowResponseSchema = z.object({
   windowId: z.number({ integer: true, min: 1 }),
   role: z.enum(WINDOW_ROLES),
   instanceKey: z.string({ minLength: 1 }),
-  permissions: z.array(z.string({ minLength: 1 }))
+  permissions: z.array(z.string({ minLength: 1 })),
+  permissionsSummary: permissionsSummarySchema.optional()
 })
 
 export type OpenWindowRequestInput = { role: string; routeName?: string; params?: Record<string, string>; query?: Record<string, string>; payload?: unknown; displayTarget?: string; parentWindowId?: number; title?: string }
@@ -142,4 +156,13 @@ export type WindowControlResponseOutput = { windowId: number; state: string }
 export type WindowListResponseOutput = { windows: WindowRef[] }
 export type SetWindowTitleRequestInput = { title: string }
 export type GetInitPayloadResponseOutput = { token: string; payload: unknown; role: string }
-export type GetCurrentWindowResponseOutput = { windowId: number; role: string; instanceKey: string; permissions: string[] }
+export type PermissionsSummary = {
+  canOpenWindow: boolean
+  canControlWindow: boolean
+  canReadDatabase: boolean
+  canBackupDatabase: boolean
+  canManageSettings: boolean
+  canManageTasks: boolean
+  canManageFiles: boolean
+}
+export type GetCurrentWindowResponseOutput = { windowId: number; role: string; instanceKey: string; permissions: string[], permissionsSummary?: PermissionsSummary }

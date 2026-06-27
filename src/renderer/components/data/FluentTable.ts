@@ -14,6 +14,7 @@
 
 import type { ComponentOptions } from '../../vue-global'
 import { cx } from '../../utils/fluent-class'
+import { escapeHtml } from '../../utils/escapeHtml'
 import { FluentCheckbox } from '../base/FluentCheckbox'
 import { FluentLoading } from '../base/FluentLoading'
 import { FluentEmpty } from '../base/FluentEmpty'
@@ -189,9 +190,13 @@ export const FluentTable: ComponentOptions = {
 
     /** 渲染单元格内容 */
     function renderCell(column: FluentTableColumn, row: Record<string, unknown>, index: number): string {
-      if (column.render) return column.render(row, index)
+      if (column.render) {
+        // render 语义为返回受信任 HTML 字符串，调用方需确保返回值已对动态内容转义
+        return column.render(row, index)
+      }
       const value = row[column.key]
-      return value === null || value === undefined ? '-' : String(value)
+      // 非 render 分支：对原始数据转义，避免 v-html XSS
+      return value === null || value === undefined ? '-' : escapeHtml(String(value))
     }
 
     const tableClass = Vue.computed(() =>

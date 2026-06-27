@@ -67,7 +67,8 @@ export {
   windowStateChangedEventSchema,
   windowRouteChangedEventSchema,
   getInitPayloadResponseSchema,
-  getCurrentWindowResponseSchema
+  getCurrentWindowResponseSchema,
+  permissionsSummarySchema
 } from './window-schemas'
 export type {
   OpenWindowRequestInput,
@@ -77,5 +78,6 @@ export type {
   WindowListResponseOutput,
   SetWindowTitleRequestInput,
   GetInitPayloadResponseOutput,
-  GetCurrentWindowResponseOutput
+  GetCurrentWindowResponseOutput,
+  PermissionsSummary
 } from './window-schemas'

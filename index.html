@@ -3,9 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      CSP 说明：style-src 保留 'unsafe-inline' 是必要的——本文件下方存在内联
+      <style> 基础样式回退块（daisyUI 加载前需要），且 Vue 运行时会通过 :style
+      绑定动态内联样式。script-src 严格限定为 'self'，不允许内联脚本执行。
+      移除 'unsafe-inline' 会导致基础样式与动态样式失效，故经评估后保留。
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self';"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none';"
     />
     <title>All In One</title>
     <!-- daisyUI v5 编译 CSS，通过 styles/index.css 统一引入。 -->

@@ -70,6 +70,11 @@ export interface UseConfirmReturn {
  */
 export function useConfirm(): UseConfirmReturn {
   function confirm(options: ConfirmOptions): Promise<boolean> {
+    // 新调用覆盖 resolver 前，先拒绝旧请求，避免旧 Promise 永不 resolve
+    if (confirmState.resolver) {
+      confirmState.resolver(false)
+      confirmState.resolver = null
+    }
     confirmState.title = options.title ?? '确认操作'
     confirmState.content = options.content ?? ''
     confirmState.confirmText = options.confirmText ?? '确认'

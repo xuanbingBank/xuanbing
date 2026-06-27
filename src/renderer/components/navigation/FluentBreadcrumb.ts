@@ -44,7 +44,7 @@ export const FluentBreadcrumb: ComponentOptions = {
   template: `
     <nav class="flex items-center text-sm" aria-label="面包屑">
       <ol class="flex items-center gap-1 flex-wrap">
-        <li v-for="(item, index) in items" :key="index" class="flex items-center gap-1">
+        <li v-for="(item, index) in items" :key="item.path || item.title || index" class="flex items-center gap-1">
           <button
             v-if="item.clickable"
             type="button"

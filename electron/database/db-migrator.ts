@@ -13,7 +13,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
-import { getConnection, type DbConnection } from './db-connection'
+import { closeConnection, getConnection, type DbConnection } from './db-connection'
 import { backupDatabase, type BackupOptions } from './db-backup'
 import { runTransaction } from './db-transaction'
 import { throwDbError, createDbError, CURRENT_SCHEMA_VERSION, MIGRATION_TABLE } from '../ipcBus/shared/database'
@@ -163,6 +163,10 @@ function updateAppliedMigrationHash(conn: DbConnection, file: MigrationFile): vo
  *
  * 防止 migration 文件在应用后被篡改导致 schema 与记录不符。
  *
+ * TODO: 仅遍历当前 files，无法发现"已应用但文件已被删除"的 migration，
+ * 即 __migrations 表中存在、但 migrations 目录已移除的记录会被静默忽略，
+ * 后续可考虑对孤儿记录做告警或校验。
+ *
  * @param conn 数据库连接。
  * @param files 当前 migration 文件列表。
  */
@@ -274,6 +278,9 @@ export function runMigrations(paths: DbPaths, options: { backup?: boolean } = {}
   }
 
   // schema version 更新单独事务包裹，保证原子性
+  // TODO: setSchemaVersion 与各 migration 的 INSERT 不在同一事务，
+  // 若进程在此处之前崩溃，可能出现 migration 已记录但 schema_version 未更新的不一致；
+  // 后续考虑将 setSchemaVersion 合并进最后一个 migration 的事务内。
   runTransaction(() => {
     setSchemaVersion(conn, CURRENT_SCHEMA_VERSION)
   })
@@ -307,6 +314,9 @@ export function seedDatabase(conn: DbConnection = getConnection()): void {
   const now = new Date().toISOString()
   const existing = conn.raw.prepare('SELECT COUNT(*) as c FROM app_settings WHERE namespace = ? AND key = ?').get('system', 'seeded') as { c: number }
 
+  // TODO: 此处存在 TOCTOU：先 SELECT 判断是否已 seed，再在事务内 INSERT，
+  // 多窗口/多进程并发首次启动时可能重复写入（受 id 主键约束会抛错回滚）。
+  // 后续可改为 INSERT OR IGNORE 或将判断并入同一事务以消除竞态。
   if (existing.c > 0) {
     return
   }
@@ -352,10 +362,8 @@ export function resetTestDatabase(paths: DbPaths): void {
     })
   }
 
-  const conn = getConnectionOrNullSafe()
-  if (conn) {
-    conn.raw.close()
-  }
+  // 关闭连接并清空 activeConnection 引用，避免句柄关闭后活动连接仍指向已失效句柄
+  closeConnection()
 
   // 删除数据库文件及 WAL/SHM
   for (const suffix of ['', '-wal', '-shm']) {

@@ -21,6 +21,7 @@ import type { BrowserWindowLike as NewBrowserWindowLike } from '../../windows/ma
 import { DEFAULT_WINDOW_ROLE_PERMISSIONS } from '../../windows/shared/window-permissions'
 import { resolvePreloadPath, resolveRendererTarget } from '../../renderer-target'
 import { closeConnection, openConnection, resolveDbPaths, runMigrations, type DbPaths } from '../../database'
+import { AuditRepository } from '../../repositories/audit.repository'
 import { DatabaseService, SettingService, TaskService, XuanbingFileService } from '../../services'
 
 export interface CreateMainIpcRuntimeOptions {
@@ -83,7 +84,17 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
     stateFilePath,
     environment: app.isPackaged ? 'production' : 'development',
     shellOpenExternal: (url: string) => {
-      void shell.openExternal(url)
+      try {
+        const protocol = new URL(url).protocol
+        if (protocol !== 'http:' && protocol !== 'https:' && protocol !== 'mailto:') {
+          console.warn(`[ipc] Blocked openExternal for unsupported protocol: ${protocol}`)
+          return
+        }
+      } catch (err) {
+        console.error('[ipc] Failed to parse URL for openExternal', err)
+        return
+      }
+      void shell.openExternal(url).catch((err) => console.error('openExternal failed', err))
     }
   })
 
@@ -117,12 +128,24 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
     'taskData:read', 'taskData:write'
   ])]
 
+  // AuditRepository 仅在 create() 时访问数据库连接，而 dispatchInvoke 只在 bus.start()
+  // （数据库已打开）之后被调用，故此处可在数据库初始化前安全实例化并注入。
+  const auditRepository = new AuditRepository()
+
   const bus = new IpcMainBus({
     ipcMain,
     logger,
     windowManager,
     environment: app.isPackaged ? 'production' : 'development',
-    rolePermissions
+    rolePermissions,
+    auditRepository
+  })
+
+  // 订阅新窗口管理器的 window:closed 事件，联动清理任务注册表与 IPC 总线状态，
+  // 避免窗口关闭后残留任务或订阅造成资源泄漏（与 main.ts 的窗口关闭清理形成兜底）。
+  newWindowManager.getEventBus().on('window:closed', (payload) => {
+    bus.cleanupWindow(payload.windowId)
+    taskRegistry.cleanupWindow(payload.windowId)
   })
 
   /* ───────────────────────── 数据库初始化 ───────────────────────── */
@@ -158,13 +181,13 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
     isPackaged: app.isPackaged
   })
   registerFileIpc(bus, dialog)
-  registerWindowIpc(bus, newWindowManager)
+  registerWindowIpc(bus, newWindowManager, rolePermissions)
   registerTaskIpc({
     bus,
     taskRegistry
   })
 
-  registerDatabaseIpc({ bus, databaseService })
+  registerDatabaseIpc({ bus, databaseService, auditRepository })
   registerTaskDataIpc({ bus, taskService })
   registerSettingIpc({ bus, settingService })
   registerXuanbingFileIpc({ bus, xuanbingFileService })

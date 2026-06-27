@@ -62,6 +62,7 @@ interface ImportPackageInput {
       total: number
     }
     conflictStrategy: string
+    dryRunChecksum?: string
   }
 }
 
@@ -142,10 +143,10 @@ export function registerXuanbingFileIpc(options: XuanbingFileIpcModuleOptions): 
   bus.registerHandler(requestContracts[IPC_CHANNELS.xuanbingFileExportPackage], async ({ input }) => {
     const exportInput = input as ExportPackageInput
 
-    // 通过 fileRef 解析真实路径（renderer 不持有路径）
-    const filePath = xuanbingFileService.resolveFilePath(exportInput.fileRef.token)
+    // 通过 fileRef 解析真实路径（renderer 不持有路径）；导出必须使用 write 模式引用
+    const filePath = xuanbingFileService.resolveFilePath(exportInput.fileRef.token, 'write')
 
-    const result = xuanbingFileService.exportPackage(
+    const result = await xuanbingFileService.exportPackage(
       filePath,
       exportInput.type as XuanbingFileType,
       exportInput.metadata,
@@ -178,7 +179,8 @@ export function registerXuanbingFileIpc(options: XuanbingFileIpcModuleOptions): 
         existingId: item.existingId
       })),
       summary: plan.summary,
-      conflictStrategy: plan.conflictStrategy
+      conflictStrategy: plan.conflictStrategy,
+      dryRunChecksum: plan.dryRunChecksum
     }
   })
 

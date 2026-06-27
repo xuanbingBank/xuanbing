@@ -52,7 +52,8 @@ export const FluentModal: ComponentOptions = {
     showConfirm: { type: Boolean, default: true },
     showCancel: { type: Boolean, default: true },
     showClose: { type: Boolean, default: true },
-    beforeClose: { type: Object as () => (() => boolean) | null, default: null }
+    /** 关闭前回调，返回 false 阻止关闭 */
+    beforeClose: { type: Function, default: null }
   },
   emits: ['update:modelValue', 'confirm', 'cancel', 'close'],
   setup(props, ctx) {

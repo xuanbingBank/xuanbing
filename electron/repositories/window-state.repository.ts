@@ -75,7 +75,11 @@ export class WindowStateRepository extends BaseRepository {
       now
     )
 
-    return this.findByRoleAndKey(input.role, input.instanceKey)!
+    const created = this.findByRoleAndKey(input.role, input.instanceKey)
+    if (!created) {
+      throw new Error('WindowState not found after upsert: ' + input.role + '/' + input.instanceKey)
+    }
+    return created
   }
 
   /**

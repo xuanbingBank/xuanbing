@@ -26,6 +26,8 @@ export interface ToastItem {
   duration: number
   /** 创建时间戳 */
   createdAt: number
+  /** 自动关闭定时器句柄（移除时需 clearTimeout，避免定时器残留触发） */
+  timerId?: ReturnType<typeof setTimeout>
 }
 
 /**
@@ -46,7 +48,7 @@ export interface NotificationStore extends StoreBase {
   /** 是否有 Toast */
   hasToasts: ReturnType<typeof Vue.computed>
   /** 添加 Toast */
-  addToast: (toast: Omit<ToastItem, 'id' | 'createdAt'>) => string
+  addToast: (toast: Omit<ToastItem, 'id' | 'createdAt' | 'timerId'>) => string
   /** 更新 Toast */
   updateToast: (id: string, update: Partial<Omit<ToastItem, 'id' | 'createdAt'>>) => void
   /** 移除 Toast */
@@ -67,6 +69,9 @@ export interface NotificationStore extends StoreBase {
 
 /** 最大 Toast 数量 */
 const MAX_TOASTS = 5
+
+/** loading 类型 Toast（duration: 0）的最大常驻时间兜底，避免永久残留 */
+const LOADING_MAX_DURATION = 30 * 1000
 
 /** 通知 Store 单例 */
 let notificationStoreInstance: NotificationStore | null = null
@@ -95,7 +100,7 @@ export function createNotificationStore(): NotificationStore {
 
   const hasToasts = computedRef<boolean>(() => state.toasts.length > 0)
 
-  function addToast(toast: Omit<ToastItem, 'id' | 'createdAt'>): string {
+  function addToast(toast: Omit<ToastItem, 'id' | 'createdAt' | 'timerId'>): string {
     const id = generateToastId()
     const item: ToastItem = {
       ...toast,
@@ -104,16 +109,25 @@ export function createNotificationStore(): NotificationStore {
     }
     state.toasts.push(item)
 
-    // 超出最大数量时移除最早的
+    // 超出最大数量时移除最早的，并清理其定时器
     while (state.toasts.length > MAX_TOASTS) {
-      state.toasts.shift()
+      const removed = state.toasts.shift()
+      if (removed && removed.timerId) {
+        clearTimeout(removed.timerId)
+      }
     }
 
-    // 自动关闭
-    if (toast.duration > 0) {
-      setTimeout(() => {
+    // 自动关闭：duration > 0 按指定时间；loading 类型兜底最大常驻时间
+    const effectiveDuration = toast.duration > 0
+      ? toast.duration
+      : toast.type === 'loading'
+        ? LOADING_MAX_DURATION
+        : 0
+
+    if (effectiveDuration > 0) {
+      item.timerId = setTimeout(() => {
         removeToast(id)
-      }, toast.duration)
+      }, effectiveDuration)
     }
 
     return id
@@ -129,11 +143,19 @@ export function createNotificationStore(): NotificationStore {
   function removeToast(id: string): void {
     const index = state.toasts.findIndex((t) => t.id === id)
     if (index >= 0) {
-      state.toasts.splice(index, 1)
+      const [removed] = state.toasts.splice(index, 1)
+      if (removed && removed.timerId) {
+        clearTimeout(removed.timerId)
+      }
     }
   }
 
   function clearToasts(): void {
+    for (const t of state.toasts) {
+      if (t.timerId) {
+        clearTimeout(t.timerId)
+      }
+    }
     state.toasts = []
   }
 
@@ -171,6 +193,11 @@ export function createNotificationStore(): NotificationStore {
     info,
     loading,
     $reset: () => {
+      for (const t of state.toasts) {
+        if (t.timerId) {
+          clearTimeout(t.timerId)
+        }
+      }
       state.toasts = []
       state.unreadCount = 0
     }

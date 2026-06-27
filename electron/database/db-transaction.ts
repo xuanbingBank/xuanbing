@@ -36,7 +36,9 @@ export function runTransaction<T>(fn: (tx: Database.Database) => T): T {
 /**
  * 在事务中执行异步友好函数（better-sqlite3 事务是同步的，此方法仅做错误包装）。
  *
- * 注意：better-sqlite3 事务是同步的，不能在事务体内 await。
+ * 注意：本函数等价于 runTransaction，签名虽声明为接受返回 T 的函数，
+ * 但 better-sqlite3 事务是同步的，**不支持在事务体内 await**。
+ * 若 fn 返回 Promise，事务会在 Promise resolve 前就提交，无法保证原子性。
  * 如需异步操作，应在事务外准备数据，事务内仅做同步写入。
  *
  * @param fn 事务体函数。

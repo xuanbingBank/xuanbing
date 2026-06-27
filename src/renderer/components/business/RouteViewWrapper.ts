@@ -1,5 +1,9 @@
 /**
  * @file 路由视图包装器，渲染当前路由页面组件并用 Suspense 包裹。
+ *
+ * TODO: 建议新增 ErrorBoundary 组件包裹路由页面，捕获页面渲染/生命周期异常，
+ * 避免单个页面抛错导致整个应用白屏。当前仅有 Suspense 处理异步加载态，
+ * 缺少对同步渲染错误的统一兜底。
  */
 
 import type { ComponentOptions } from '../../vue-global'
@@ -11,8 +15,6 @@ export const RouteViewWrapper: ComponentOptions = {
     const getPageComponent = Vue.inject<() => ComponentOptions | null>('getPageComponent')
     // 注入页面 props 获取函数
     const getPageProps = Vue.inject<() => Record<string, unknown>>('getPageProps')
-    // 注入缓存名单（用于判断是否缓存当前页面）
-    Vue.inject<string[]>('cachedNames')
 
     // 当前页面组件
     const pageComponent = Vue.computed(() => {

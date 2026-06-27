@@ -38,9 +38,13 @@ export const XUANBING_FILE_TYPES = [
 export type XuanbingFileType = (typeof XUANBING_FILE_TYPES)[number]
 
 /**
- * .xuanbing 文件大小上限（默认 50MB）。
+ * .xuanbing 文件大小上限（10MB）。
+ *
+ * 当前读取流程为 readFileSync 整读 + JSON.parse，会产生 2-5 倍内存膨胀。
+ * 上限从 50MB 降至 10MB 以限制峰值内存占用。
+ * TODO: 大文件应改用流式解析（如流式 JSON parser），届时可放宽上限。
  */
-export const XUANBING_MAX_FILE_BYTES = 50 * 1024 * 1024
+export const XUANBING_MAX_FILE_BYTES = 10 * 1024 * 1024
 
 /**
  * .xuanbing 导入冲突策略。

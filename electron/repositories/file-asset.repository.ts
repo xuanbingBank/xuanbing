@@ -87,7 +87,13 @@ export class FileAssetRepository extends BaseRepository {
       now
     )
 
-    return this.findById(id)!
+    const created = this.findById(id)
+    if (!created) {
+      // TODO: 此处抛 new Error 而非 throwDbError，错误码与上下文信息缺失，
+      // 后续应统一改为 throwDbError 以纳入数据库错误处理链路。
+      throw new Error('FileAsset not found after insert: ' + id)
+    }
+    return created
   }
 
   /**
@@ -97,6 +103,8 @@ export class FileAssetRepository extends BaseRepository {
    * @returns 文件素材行或 null。
    */
   findById(id: string): FileAssetRow | null {
+    // TODO: 未过滤 deleted_at，会返回已软删除的记录。
+    // 调用方若需排除已删除记录，应另行判断 deletedAt 或新增带过滤的查询方法。
     return (this.db.prepare('SELECT * FROM file_assets WHERE id = ?').get(id) as FileAssetRow | undefined) ?? null
   }
 
@@ -120,6 +128,8 @@ export class FileAssetRepository extends BaseRepository {
     const conditions: string[] = []
     const params: unknown[] = []
 
+    // 顶层 includeDeleted 与 filter.includeDeleted 任一为 true 时包含已删除记录,
+    // 仅当两者均未显式开启时才过滤掉 deleted_at
     if (!query.includeDeleted && !query.filter?.includeDeleted) {
       conditions.push('deleted_at IS NULL')
     }

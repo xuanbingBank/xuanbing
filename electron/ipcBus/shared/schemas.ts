@@ -577,7 +577,8 @@ export const xuanbingFileDryRunImportResponseSchema = z.object({
     error: z.number({ min: 0 }),
     total: z.number({ min: 0 })
   }),
-  conflictStrategy: z.string({ minLength: 1 })
+  conflictStrategy: z.string({ minLength: 1 }),
+  dryRunChecksum: z.string().optional()
 })
 
 /**

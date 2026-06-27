@@ -4,6 +4,7 @@
 
 import type { ComponentOptions } from '../vue-global'
 import type { CurrentRoute, RouteMeta } from '../router/types'
+import { ROUTE_PATHS } from '../constants'
 import { PageContainer } from '../components/base/PageContainer'
 import { BaseCard } from '../components/base/BaseCard'
 import { BaseButton } from '../components/base/BaseButton'
@@ -29,11 +30,14 @@ export const TaskDetailPage: ComponentOptions = {
   setup(props) {
     const p = props as unknown as PageProps
     const toast = useToast()
+    // 注入路由器
+    const router = Vue.inject<{ navigate: (path: string) => void }>('router')
 
     // 任务 ID
     const taskId = Vue.computed(() => p.params.id || 'unknown')
 
     // 任务详情 mock 数据
+    // TODO: mock 数据,待接入真实数据源
     const task = Vue.ref({
       taskId: p.params.id || 'unknown',
       name: '数据同步任务',
@@ -44,9 +48,13 @@ export const TaskDetailPage: ComponentOptions = {
       description: '将本地数据同步到远程服务器，包含全量与增量两个阶段。'
     })
 
-    // 返回
+    // 返回任务列表
     function handleBack(): void {
-      window.history.back()
+      if (router) {
+        router.navigate(ROUTE_PATHS.TASK_CENTER)
+      } else {
+        console.warn('[TaskDetailPage] router 未注入，无法返回任务中心')
+      }
     }
 
     // 取消任务

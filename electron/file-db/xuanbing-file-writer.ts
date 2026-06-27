@@ -55,6 +55,7 @@ export function buildXuanbingFile(params: {
 export function writeXuanbingFile(filePath: string, file: XuanbingFile): void {
   const content = JSON.stringify(file, null, 2)
   atomicWriteFile(filePath, content)
+  // TODO: 可选写后回读校验 checksum
 }
 
 /**

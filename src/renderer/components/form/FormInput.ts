@@ -31,11 +31,11 @@ export const FormInput: ComponentOptions = {
   name: 'FormInput',
   props: {
     modelValue: { type: [String, Number], default: '' },
-    type: { type: Object as () => InputType, default: 'text' },
+    type: { type: String as () => InputType, default: 'text' },
     placeholder: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     readonly: { type: Boolean, default: false },
-    size: { type: Object as () => InputSize, default: 'md' },
+    size: { type: String as () => InputSize, default: 'md' },
     error: { type: Boolean, default: false }
   },
   emits: ['update:modelValue', 'blur', 'focus'],

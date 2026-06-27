@@ -17,6 +17,7 @@ import { taskClient } from '../services/task.client'
 import { xuanbingFileClient } from '../services/xuanbing-file.client'
 import { useCachedQuery } from '../composables/useCachedQuery'
 import { clearByNamespace } from '../cache/cache-store'
+import { escapeHtml } from '../utils/escapeHtml'
 import type { TaskDataItem, TaskDataListOutput } from '../../../electron/ipcBus/renderer/desktop-api'
 
 /** 页面 Props */
@@ -131,7 +132,8 @@ export const TaskCenterPage: ComponentOptions = {
         width: '110px',
         render: (row: Record<string, unknown>): string => {
           const status = row.status as TaskStatus
-          const text = statusTextMap[status] || status
+          // 回退到原始 status 时需转义，防止数据库被注入恶意 status 导致 XSS
+          const text = statusTextMap[status] || escapeHtml(String(status))
           const color = statusColorMap[status] || statusColorMap.pending
           return (
             '<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style="background:' +
@@ -149,7 +151,8 @@ export const TaskCenterPage: ComponentOptions = {
         title: '进度',
         width: '180px',
         render: (row: Record<string, unknown>): string => {
-          const progress = row.progress as number
+          // 强制转换为有限数字，防止后端返回非数字字符串在 style/文本拼接处引发 XSS
+          const progress = Number(row.progress) || 0
           return (
             '<div class="flex items-center gap-2"><div class="flex-1 h-1.5 rounded-full bg-[var(--xb-bg-hover)] overflow-hidden"><div class="h-full rounded-full bg-[var(--xb-brand)] transition-all" style="width:' +
             progress +

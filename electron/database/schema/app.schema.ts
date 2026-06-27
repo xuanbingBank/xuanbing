@@ -3,7 +3,7 @@
  */
 
 import { sql } from 'drizzle-orm'
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
 
 /**
  * app_settings：键值对配置存储，按 namespace + key 唯一。
@@ -18,9 +18,7 @@ export const appSettings = sqliteTable('app_settings', {
   isSystem: integer('is_system', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
-})
-
-/**
- * app_settings 唯一索引：namespace + key。
- * 通过 UNIQUE 约束在 DDL 中实现（见 migration）。
- */
+}, (table) => ({
+  // namespace + key 唯一约束（与 migration DDL 中的 UNIQUE 一致）
+  namespaceKeyUnique: unique('namespace_key_unique').on(table.namespace, table.key)
+}))

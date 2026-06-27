@@ -49,6 +49,7 @@ export const SettingsSecurityPage: ComponentOptions = {
     // 两步验证
     const twoFactor = Vue.ref(false)
 
+    // TODO: mock 数据,待接入真实数据源
     // 登录会话 mock 数据
     const sessions: SessionItem[] = [
       { id: 1, device: 'Windows - Chrome', ip: '192.168.1.100', lastActive: '当前会话', current: true },

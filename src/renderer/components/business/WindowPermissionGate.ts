@@ -18,7 +18,7 @@ export const WindowPermissionGate: ComponentOptions = {
   name: 'WindowPermissionGate',
   props: {
     roles: { type: Array, default: () => [] },
-    behavior: { type: Object as () => GateBehavior, default: 'hide' }
+    behavior: { type: String as () => GateBehavior, default: 'hide' }
   },
   setup(props) {
     const p = props as unknown as WindowPermissionGateProps

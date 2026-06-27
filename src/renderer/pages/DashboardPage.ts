@@ -50,6 +50,7 @@ export const DashboardPage: ComponentOptions = {
     route: { type: Object, default: () => ({}) }
   },
   setup() {
+    // TODO: mock 数据,待接入真实数据源
     // 统计卡片 mock 数据
     const stats: StatItem[] = [
       {

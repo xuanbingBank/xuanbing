@@ -8,7 +8,7 @@ import fs from 'node:fs'
 import { throwDbError } from '../ipcBus/shared/database'
 import { XUANBING_FORMAT_VERSION, XUANBING_MAGIC, XUANBING_MAX_FILE_BYTES } from '../ipcBus/shared/database'
 import { verifyChecksum } from './xuanbing-file-checksum'
-import { validateXuanbingFile } from './xuanbing-file.schema'
+import { validateXuanbingFile, XUANBING_MIN_SUPPORTED_VERSION } from './xuanbing-file.schema'
 import { ensureFileSize, ensureXuanbingExtension } from './safe-file-path'
 import type { XuanbingFile } from './xuanbing-file-types'
 
@@ -34,6 +34,28 @@ export function readXuanbingFile(filePath: string): XuanbingFile {
   // 2. 校验文件大小
   ensureFileSize(filePath, XUANBING_MAX_FILE_BYTES)
 
+  // 2.1 拒绝符号链接：lstat 不跟随符号链接，避免读取者通过 symlink 绕过路径校验
+  try {
+    const stat = fs.lstatSync(filePath)
+    if (stat.isSymbolicLink()) {
+      throwDbError('XUANBING_FILE_PATH_FORBIDDEN', 'Symlinks are not allowed.', {
+        severity: 'high',
+        safeDetail: { reason: 'symlink_not_allowed' }
+      })
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      const message = error instanceof Error ? error.message : String(error)
+      throwDbError('XUANBING_FILE_INVALID', 'Failed to lstat file.', {
+        safeDetail: { reason: 'lstat_failed' },
+        devDetail: message
+      })
+    }
+  }
+
+  // TODO: 大文件建议改流式解析（如流式 JSON parser）。
+  // 当前为 readFileSync 整读 + JSON.parse，会产生 2-5 倍内存膨胀；
+  // XUANBING_MAX_FILE_BYTES 已降至 10MB 以限制峰值内存，流式落地后可放宽。
   // 3. 读取并解析 JSON
   let rawContent: string
   try {
@@ -43,6 +65,14 @@ export function readXuanbingFile(filePath: string): XuanbingFile {
     throwDbError('XUANBING_FILE_INVALID', 'Failed to read file.', {
       safeDetail: { reason: 'read_failed' },
       devDetail: message
+    })
+  }
+
+  // 3.1 读后再次校验长度，防止 ensureFileSize 与 readFileSync 之间发生 TOCTOU
+  //     （文件在 stat 后被追加写入超过限制）
+  if (Buffer.byteLength(rawContent, 'utf8') > XUANBING_MAX_FILE_BYTES) {
+    throwDbError('XUANBING_FILE_TOO_LARGE', 'File size changed during read, exceeds limit.', {
+      safeDetail: { reason: 'too_large_toctou' }
     })
   }
 
@@ -58,13 +88,16 @@ export function readXuanbingFile(filePath: string): XuanbingFile {
   }
 
   // 4. 校验 magic（在完整 schema 校验前快速失败）
-  if (typeof parsed === 'object' && parsed !== null) {
-    const magic = (parsed as { magic?: unknown }).magic
-    if (magic !== XUANBING_MAGIC) {
-      throwDbError('XUANBING_FILE_INVALID', 'Invalid file magic.', {
-        safeDetail: { reason: 'invalid_magic', expected: XUANBING_MAGIC }
-      })
-    }
+  if (typeof parsed !== 'object' || parsed === null) {
+    throwDbError('XUANBING_FILE_INVALID', 'File content is not an object.', {
+      safeDetail: { reason: 'not_object' }
+    })
+  }
+  const magic = (parsed as { magic?: unknown }).magic
+  if (magic !== XUANBING_MAGIC) {
+    throwDbError('XUANBING_FILE_INVALID', 'Invalid file magic.', {
+      safeDetail: { reason: 'invalid_magic', expected: XUANBING_MAGIC }
+    })
   }
 
   // 5. zod schema 校验（包含 formatVersion、schemaVersion 等）
@@ -83,6 +116,16 @@ export function readXuanbingFile(filePath: string): XuanbingFile {
   if (file.formatVersion > XUANBING_FORMAT_VERSION) {
     throwDbError('XUANBING_FILE_VERSION_UNSUPPORTED', `Unsupported format version ${file.formatVersion}.`, {
       safeDetail: { reason: 'unsupported_format_version', got: file.formatVersion, max: XUANBING_FORMAT_VERSION }
+    })
+  }
+  // 6.1 校验最低支持版本：低于此版本拒绝读取，未来版本迁移框架占位
+  if (file.formatVersion < XUANBING_MIN_SUPPORTED_VERSION) {
+    throwDbError('XUANBING_FILE_VERSION_UNSUPPORTED', `Unsupported format version ${file.formatVersion}.`, {
+      safeDetail: {
+        reason: 'unsupported_format_version',
+        got: file.formatVersion,
+        min: XUANBING_MIN_SUPPORTED_VERSION
+      }
     })
   }
 

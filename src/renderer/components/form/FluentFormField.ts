@@ -57,11 +57,9 @@ export const FluentFormField: ComponentOptions = {
   setup(props) {
     const p = props as unknown as FluentFormFieldProps
 
-    const fieldId = Vue.ref(`xb-field-${Math.random().toString(36).slice(2, 9)}`)
-
     const isError = Vue.computed(() => Boolean(p.error))
 
-    return { fieldId, isError, cx }
+    return { isError, cx }
   },
   template: `
     <div :class="['w-full', orientation === 'horizontal' ? 'flex items-start gap-3' : 'flex flex-col gap-1.5']">

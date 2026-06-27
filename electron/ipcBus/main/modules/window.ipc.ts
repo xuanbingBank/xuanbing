@@ -123,7 +123,8 @@ function assertControlPermission(
   windowManager: WindowManagerLike,
   senderWindowId: number | undefined,
   targetWindowId: number,
-  permission: 'window:control:any'
+  permission: 'window:control:any',
+  rolePermissions: Record<string, string[]>
 ): void {
   if (senderWindowId === targetWindowId) {
     return
@@ -138,7 +139,7 @@ function assertControlPermission(
     throw createIpcError('IPC_WINDOW_NOT_FOUND', `Sender window ${senderWindowId} is unavailable.`)
   }
 
-  const allowed = hasControlPermission(senderRef.role, permission)
+  const allowed = hasControlPermission(senderRef.role, permission, rolePermissions)
   if (!allowed) {
     throw createIpcError(
       'IPC_FORBIDDEN',
@@ -150,18 +151,20 @@ function assertControlPermission(
 /**
  * 检查角色是否拥有指定控制权限。
  *
+ * 使用 index.ts 装配时注入的扩展后 rolePermissions 映射，而非直接 require
+ * DEFAULT_WINDOW_ROLE_PERMISSIONS，确保与 IPC 总线权限源保持一致。
+ *
  * @param role 窗口角色。
  * @param permission 权限名称。
+ * @param rolePermissions 注入的角色权限映射。
  * @returns 是否拥有。
  */
-function hasControlPermission(role: string, permission: string): boolean {
-  // 延迟导入避免循环依赖；使用 windows/shared 的权限映射。
-  // 此处直接使用 require 以兼容 CommonJS。
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { DEFAULT_WINDOW_ROLE_PERMISSIONS } = require('../../../windows/shared/window-permissions') as {
-    DEFAULT_WINDOW_ROLE_PERMISSIONS: Record<string, string[]>
-  }
-  const perms = DEFAULT_WINDOW_ROLE_PERMISSIONS[role] ?? []
+function hasControlPermission(
+  role: string,
+  permission: string,
+  rolePermissions: Record<string, string[]>
+): boolean {
+  const perms = rolePermissions[role] ?? []
   return perms.includes(permission)
 }
 
@@ -179,6 +182,47 @@ function resolveTargetWindowId(senderWindowId: number | undefined, input: Window
     throw createIpcError('IPC_WINDOW_NOT_FOUND', 'Unable to resolve a target window for this request.')
   }
   return targetWindowId
+}
+
+/**
+ * 当前窗口权限的布尔摘要，渲染层可按能力判断而非直接消费原始权限字符串。
+ */
+export interface PermissionsSummary {
+  canOpenWindow: boolean
+  canControlWindow: boolean
+  canReadDatabase: boolean
+  canBackupDatabase: boolean
+  canManageSettings: boolean
+  canManageTasks: boolean
+  canManageFiles: boolean
+}
+
+/**
+ * 根据权限数组构建布尔摘要对象，便于渲染层按能力判断。
+ *
+ * 仅做包含判断，不修改 permissions 数组本身。各字段映射到关键权限字符串：
+ * - canOpenWindow: window:open
+ * - canControlWindow: window:control:any 或 window:control:self
+ * - canReadDatabase: database:read 或 app:read
+ * - canBackupDatabase: database:backup
+ * - canManageSettings: setting:write 或 setting:read
+ * - canManageTasks: task:run / task:cancel / taskData:write
+ * - canManageFiles: file:read 或 file:write
+ *
+ * @param permissions 当前窗口的权限数组。
+ * @returns 布尔摘要对象。
+ */
+function buildPermissionsSummary(permissions: string[]): PermissionsSummary {
+  const has = (perm: string): boolean => permissions.includes(perm)
+  return {
+    canOpenWindow: has('window:open'),
+    canControlWindow: has('window:control:any') || has('window:control:self'),
+    canReadDatabase: has('database:read') || has('app:read'),
+    canBackupDatabase: has('database:backup'),
+    canManageSettings: has('setting:write') || has('setting:read'),
+    canManageTasks: has('task:run') || has('task:cancel') || has('taskData:write'),
+    canManageFiles: has('file:read') || has('file:write')
+  }
 }
 
 /* ───────────────────────── 注册入口 ───────────────────────── */
@@ -211,8 +255,14 @@ function resolveTargetWindowId(senderWindowId: number | undefined, input: Window
  *
  * @param bus 主进程 IPC 总线。
  * @param windowManager 新窗口管理器（electron/windows/main）。
+ * @param rolePermissions 注入的扩展后角色权限映射，供 hasControlPermission 使用，
+ *   保证窗口控制权限校验与 IPC 总线权限源一致。
  */
-export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerLike): void {
+export function registerWindowIpc(
+  bus: IpcMainBus,
+  windowManager: WindowManagerLike,
+  rolePermissions: Record<string, string[]>
+): void {
   /* ── windowOpen ── */
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowOpen], async ({ input, senderWindowId }) => {
     const openInput = input as WindowOpenInput
@@ -223,7 +273,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
       query: openInput.query,
       payload: openInput.payload,
       displayTarget: openInput.displayTarget,
-      parentWindowId: senderWindowId ?? openInput.parentWindowId,
+      parentWindowId: senderWindowId,
       title: openInput.title
     })
     return result
@@ -233,7 +283,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowMinimize], async ({ input, senderWindowId }) => {
     const controlInput = input as WindowControlInput
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.minimizeWindow(targetWindowId)
     return { windowId: targetWindowId, state: 'minimized' as const }
   })
@@ -242,7 +292,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowMaximize], async ({ input, senderWindowId }) => {
     const controlInput = input as WindowControlInput
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.toggleMaximize(targetWindowId)
     const ref = windowManager.getWindow(targetWindowId)
     return {
@@ -255,7 +305,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowClose], async ({ input, senderWindowId }) => {
     const controlInput = input as WindowControlInput
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.closeWindow(targetWindowId)
     return { windowId: targetWindowId, state: 'closed' as const }
   })
@@ -264,7 +314,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowRestore], async ({ input, senderWindowId }) => {
     const controlInput = input as WindowControlInput
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.restoreWindow(targetWindowId)
     return { windowId: targetWindowId, state: 'restored' as const }
   })
@@ -273,7 +323,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowHide], async ({ input, senderWindowId }) => {
     const controlInput = input as WindowControlInput
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.hideWindow(targetWindowId)
     return { windowId: targetWindowId, state: 'hidden' as const }
   })
@@ -282,7 +332,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowShow], async ({ input, senderWindowId }) => {
     const controlInput = input as WindowControlInput
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.showWindow(targetWindowId)
     return { windowId: targetWindowId, state: 'shown' as const }
   })
@@ -305,7 +355,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
     }
 
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.focusWindow(targetWindowId)
     return { windowId: targetWindowId, state: 'focused' as const }
   })
@@ -314,14 +364,27 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
   bus.registerHandler(requestContracts[IPC_CHANNELS.windowReload], async ({ input, senderWindowId }) => {
     const controlInput = input as WindowControlInput
     const targetWindowId = resolveTargetWindowId(senderWindowId, controlInput)
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.reloadWindow(targetWindowId)
     return { windowId: targetWindowId, state: 'normal' as const }
   })
 
   /* ── windowList ── */
-  bus.registerHandler(requestContracts[IPC_CHANNELS.windowList], async () => {
-    return { windows: windowManager.listWindows() }
+  // 按调用方权限过滤：无 window:control:any 权限的调用方仅返回其自身窗口，
+  // 拥有该权限者才返回全量窗口列表，避免低权角色枚举其他窗口。
+  bus.registerHandler(requestContracts[IPC_CHANNELS.windowList], async ({ senderWindowId }) => {
+    const allWindows = windowManager.listWindows()
+    if (senderWindowId === undefined) {
+      return { windows: [] }
+    }
+    const senderRef = windowManager.getWindow(senderWindowId)
+    if (!senderRef) {
+      return { windows: [] }
+    }
+    if (hasControlPermission(senderRef.role, 'window:control:any', rolePermissions)) {
+      return { windows: allWindows }
+    }
+    return { windows: allWindows.filter((w) => w.id === senderWindowId) }
   })
 
   /* ── windowGetCurrent ── */
@@ -337,17 +400,19 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
     }
 
     // 从角色配置中获取权限列表。
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { getWindowConfig } = require('../../../windows/shared/window-config') as {
       getWindowConfig: (role: string) => { permissions: string[] }
     }
     const permissions = getWindowConfig(ref.role).permissions
 
+    // 保留完整 permissions 数组以兼容现有渲染层，同时新增 permissionsSummary
+    // 布尔摘要，供渲染层按能力判断（可选使用）。
     return {
       windowId: ref.id,
       role: ref.role,
       instanceKey: ref.instanceKey,
-      permissions
+      permissions,
+      permissionsSummary: buildPermissionsSummary(permissions)
     }
   })
 
@@ -358,7 +423,7 @@ export function registerWindowIpc(bus: IpcMainBus, windowManager: WindowManagerL
     if (targetWindowId === undefined) {
       throw createIpcError('IPC_WINDOW_NOT_FOUND', 'Unable to resolve a target window for setting title.')
     }
-    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any')
+    assertControlPermission(windowManager, senderWindowId, targetWindowId, 'window:control:any', rolePermissions)
     windowManager.updateWindowTitle(targetWindowId, titleInput.title)
     return { windowId: targetWindowId, title: titleInput.title }
   })

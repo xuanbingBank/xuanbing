@@ -79,6 +79,8 @@ export interface ImportPlan {
     total: number
   }
   conflictStrategy: XuanbingConflictStrategy
+  /** dryRun 时文件 checksum，正式导入时校验，绑定 plan 与文件状态。 */
+  dryRunChecksum?: string
 }
 
 /**

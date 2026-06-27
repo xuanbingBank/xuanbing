@@ -93,7 +93,11 @@ export class TaskRepository extends BaseRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, input.type, input.title, status, progress, serializeJson(input.input ?? null), now, now)
 
-    return this.findById(id)!
+    const created = this.findById(id)
+    if (!created) {
+      throw new Error('Task not found after insert: ' + id)
+    }
+    return created
   }
 
   /**
