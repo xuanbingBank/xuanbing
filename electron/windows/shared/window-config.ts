@@ -101,6 +101,8 @@ export const windowConfigs: WindowConfigMap = {
       'window:focus',
       'window:list',
       'window:control:self',
+      'window:control:any',
+      'window:close:any',
       'app:read',
       'app:quit',
       'file:read',

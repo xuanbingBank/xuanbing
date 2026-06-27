@@ -71,7 +71,8 @@ function approximateByteSize(value: unknown): number {
  * @param options 打开参数。
  * @param senderWindowId 发起方窗口 ID（仅用于日志上下文）。
  * @param environment 当前环境。
- * @param existingCount 已存在的同角色实例数。
+ * @param existingCount ???????????
+ * @param allowExistingInstance ?????????????????????
  * @returns 校验结果。
  */
 export function validateOpenRequest(
@@ -79,7 +80,8 @@ export function validateOpenRequest(
   options: OpenWindowOptions,
   senderWindowId: number | undefined,
   environment: WindowEnvironment,
-  existingCount: number
+  existingCount: number,
+  allowExistingInstance = false
 ): GuardResult {
   if (!isWindowRole(role)) {
     return {
@@ -129,14 +131,14 @@ export function validateOpenRequest(
     }
   }
 
-  if (config.singleton && existingCount > 0) {
+  if (!allowExistingInstance && config.singleton && existingCount > 0) {
     return {
       allowed: false,
       reason: `Singleton role "${role}" already has an instance.`
     }
   }
 
-  if (existingCount >= config.maxInstances) {
+  if (!allowExistingInstance && existingCount >= config.maxInstances) {
     return {
       allowed: false,
       reason: `Role "${role}" reached max instances ${config.maxInstances}.`
@@ -250,7 +252,7 @@ export function shouldAllowDevTools(
   }
 
   if (environment === 'production') {
-    return { allowed: true, reason: 'DevTools allowed in production by config.' }
+    return { allowed: false, reason: 'DevTools are disabled in production.' }
   }
 
   return { allowed: true }

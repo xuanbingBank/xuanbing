@@ -148,7 +148,8 @@ export function importPackage(filePath: string, plan: ImportPlan): ImportResult 
 
         if (item.action === 'create') {
           // 如果是 rename 策略，生成新 ID
-          const id = item.reason?.startsWith('renamed') ? `${task.id}-imported-${Date.now()}` : task.id
+          const importSuffix = item.reason?.startsWith('renamed') ? `imported-${Date.now()}` : ''
+          const id = importSuffix ? `${task.id}-${importSuffix}` : task.id
 
           tx.prepare(`
             INSERT INTO tasks (id, type, title, status, progress, input, output, error, started_at, finished_at, canceled_at, created_at, updated_at)
@@ -172,11 +173,12 @@ export function importPackage(filePath: string, plan: ImportPlan): ImportResult 
           // 导入关联事件
           const events = payload.events?.filter((e) => e.taskId === task.id) ?? []
           for (const event of events) {
+            const eventId = importSuffix ? `${event.id}-${importSuffix}` : event.id
             tx.prepare(`
               INSERT INTO task_events (id, task_id, event_type, message, payload, created_at)
               VALUES (?, ?, ?, ?, ?, ?)
             `).run(
-              event.id,
+              eventId,
               id,
               event.eventType,
               event.message,

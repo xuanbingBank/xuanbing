@@ -288,13 +288,17 @@ export class WindowManager {
       title: options?.title
     }
 
+    const instanceKey = this.resolveInstanceKey(role, config, options)
+    const existingWindowId = this.registry.getByInstanceKey(instanceKey)
+    const canReuseExisting = existingWindowId !== undefined && config.onSecondOpen !== 'newInstance'
     const existingCount = this.registry.countByRole(role)
     const guardResult = validateOpenRequest(
       role,
       mergedOptions,
       options?.parentWindowId,
       this.environment,
-      existingCount
+      existingCount,
+      canReuseExisting
     )
     if (!guardResult.allowed) {
       throw createWindowError(
@@ -315,9 +319,6 @@ export class WindowManager {
         }
       }
     }
-
-    const instanceKey = this.resolveInstanceKey(role, config, options)
-    const existingWindowId = this.registry.getByInstanceKey(instanceKey)
 
     if (existingWindowId !== undefined && config.onSecondOpen !== 'newInstance') {
       if (config.onSecondOpen === 'focus') {
@@ -382,9 +383,26 @@ export class WindowManager {
    * @param windowId 窗口 ID。
    */
   public closeWindow(windowId: number): void {
+    const record = this.internalRecords.get(windowId)
     const window = this.getInternalWindow(windowId)
-    if (window && !window.isDestroyed()) {
-      window.close()
+    if (!record || !window || window.isDestroyed()) {
+      return
+    }
+
+    switch (record.config.closeBehavior) {
+      case 'hide':
+        window.hide()
+        return
+      case 'minimize':
+        window.minimize()
+        return
+      case 'prevent':
+        return
+      case 'ask':
+      case 'custom':
+      case 'close':
+      default:
+        window.close()
     }
   }
 

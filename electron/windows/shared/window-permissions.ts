@@ -29,6 +29,8 @@ export const DEFAULT_WINDOW_ROLE_PERMISSIONS: Record<WindowRole, WindowPermissio
     'window:focus',
     'window:list',
     'window:control:self',
+    'window:control:any',
+    'window:close:any',
     'app:read',
     'app:quit',
     'file:read',

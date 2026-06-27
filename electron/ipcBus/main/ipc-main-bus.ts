@@ -369,11 +369,12 @@ export class IpcMainBus {
   private async dispatchInvoke(channel: string, event: IpcInvokeEventLike, rawInput: unknown): Promise<unknown> {
     const requestId = this.createRequestId()
     const startedAt = Date.now()
-    const payloadSize = this.measurePayloadBytes(rawInput)
+    let payloadSize = 0
     let timedOut = false
     let aborted = false
 
     try {
+      payloadSize = this.measurePayloadBytes(rawInput)
       const record = this.handlers.get(channel)
 
       if (!record) {
@@ -561,7 +562,11 @@ export class IpcMainBus {
       return 0
     }
 
-    return new TextEncoder().encode(JSON.stringify(payload)).length
+    try {
+      return new TextEncoder().encode(JSON.stringify(payload)).length
+    } catch (error) {
+      throw createIpcError('IPC_PAYLOAD_UNSERIALIZABLE', 'The request payload cannot be serialized.', error)
+    }
   }
 
   /**

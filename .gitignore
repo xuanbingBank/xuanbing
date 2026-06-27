@@ -18,6 +18,9 @@ node_modules/
 .pnpm-store/
 dist/
 test/
+!test/
+!test/**/
+!test/**/*.test.js
 .codegraph/
 pnpm-workspace.yaml
 .next/

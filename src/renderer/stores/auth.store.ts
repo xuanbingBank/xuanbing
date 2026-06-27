@@ -63,7 +63,7 @@ export function createAuthStore(): AuthStore {
   if (authStoreInstance) return authStoreInstance
 
   const state = defineState<AuthState>({
-    token: storage.get<string | null>(STORAGE_KEYS.AUTH_TOKEN, null),
+    token: null,
     user: storage.get<AuthUser | null>(STORAGE_KEYS.AUTH_USER, null),
     loginLoading: false,
     loginError: null,
@@ -92,10 +92,9 @@ export function createAuthStore(): AuthStore {
         roles: ['user']
       }
 
-      const token = `mock-token-${Date.now()}`
+      const token = `desktop-session-${Date.now()}`
       state.token = token
       state.user = user
-      storage.set(STORAGE_KEYS.AUTH_TOKEN, token)
       storage.set(STORAGE_KEYS.AUTH_USER, user)
 
       return user
@@ -128,11 +127,7 @@ export function createAuthStore(): AuthStore {
 
   function setToken(token: string | null): void {
     state.token = token
-    if (token) {
-      storage.set(STORAGE_KEYS.AUTH_TOKEN, token)
-    } else {
-      storage.remove(STORAGE_KEYS.AUTH_TOKEN)
-    }
+    storage.remove(STORAGE_KEYS.AUTH_TOKEN)
   }
 
   function setUser(user: AuthUser | null): void {

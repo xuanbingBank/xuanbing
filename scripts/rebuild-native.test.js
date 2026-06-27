@@ -35,4 +35,5 @@ test('test 脚本会在 Node 测试前恢复 better-sqlite3 的 Node ABI', () =>
   assert.equal(pkg.scripts['rebuild:native:node'], 'node scripts/rebuild-native.js node')
   assert.match(pkg.scripts.test, /^pnpm run rebuild:native:node && /)
   assert.match(pkg.scripts.test, /node --test/)
+  assert.match(pkg.scripts.test, /test\/renderer\/\*\.test\.js/)
 })

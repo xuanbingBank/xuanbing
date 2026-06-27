@@ -169,6 +169,10 @@ export function executeGuards(
   }
 
   // 如果已经是重定向目标页面，直接放行
+  if (shouldRedirectFromLogin(to, context.isAuthenticated)) {
+    return { allowed: false, redirect: ROUTE_PATHS.DASHBOARD }
+  }
+
   if (isRedirectTarget) {
     return { allowed: true }
   }
@@ -181,11 +185,6 @@ export function executeGuards(
   // 4. 认证状态
   if (!checkAuth(to, context.isAuthenticated)) {
     return { allowed: false, redirect: ROUTE_PATHS.LOGIN }
-  }
-
-  // 5. 登录后访问 /login → 重定向到 /dashboard
-  if (shouldRedirectFromLogin(to, context.isAuthenticated)) {
-    return { allowed: false, redirect: ROUTE_PATHS.DASHBOARD }
   }
 
   // 6. 权限检查

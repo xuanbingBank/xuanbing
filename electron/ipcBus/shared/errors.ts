@@ -17,6 +17,7 @@ export const IPC_ERROR_CODES = {
   windowDestroyed: 'IPC_WINDOW_DESTROYED',
   rateLimited: 'IPC_RATE_LIMITED',
   payloadTooLarge: 'IPC_PAYLOAD_TOO_LARGE',
+  payloadUnserializable: 'IPC_PAYLOAD_UNSERIALIZABLE',
   unsupported: 'IPC_UNSUPPORTED',
   conflict: 'IPC_CONFLICT',
   notReady: 'IPC_NOT_READY'

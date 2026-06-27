@@ -5,15 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self';"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self';"
     />
     <title>All In One</title>
-    <!-- Tailwind CSS v4 CDN：当前项目没有 Vite/PostCSS 构建链，暂由 CDN 提供工具类。 -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <!-- daisyUI v5 编译 CSS，通过 styles/index.css 统一引入。 -->
-    <link rel="stylesheet" href="./src/renderer/styles/index.css" />
+    <link rel="stylesheet" href="./dist/src/renderer/styles/index.css" />
     <!-- Vue 3 runtime-only 全局构建：模板已在构建脚本中预编译，避免 CSP 动态求值限制。 -->
-    <script src="./node_modules/vue/dist/vue.runtime.global.prod.js"></script>
+    <script src="./dist/vendor/vue.runtime.global.prod.js"></script>
     <style>
       /* 基础样式回退（daisyUI 加载前）。 */
       html, body {

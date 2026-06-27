@@ -370,6 +370,71 @@ function buildBundle(config) {
  *
  * tsc 只编译 .ts 文件，.sql 资源文件需要手动复制。
  */
+/**
+ * ?????????
+ *
+ * @param {string} srcDir ????
+ * @param {string} destDir ?????
+ */
+function copyDirectoryRecursive(srcDir, destDir) {
+  if (!fs.existsSync(srcDir)) {
+    return
+  }
+
+  fs.mkdirSync(destDir, { recursive: true })
+
+  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    const srcPath = path.join(srcDir, entry.name)
+    const destPath = path.join(destDir, entry.name)
+
+    if (entry.isDirectory()) {
+      copyDirectoryRecursive(srcPath, destPath)
+      continue
+    }
+
+    if (entry.isFile()) {
+      fs.copyFileSync(srcPath, destPath)
+    }
+  }
+}
+
+/**
+ * ????????????
+ *
+ * @param {string} srcFile ????
+ * @param {string} destFile ?????
+ */
+function copyRuntimeFile(srcFile, destFile) {
+  if (!fileExists(srcFile)) {
+    throw new Error(`Runtime asset not found: ${srcFile}`)
+  }
+
+  fs.mkdirSync(path.dirname(destFile), { recursive: true })
+  fs.copyFileSync(srcFile, destFile)
+}
+
+/**
+ * ??????????? dist?
+ *
+ * HTML ????? dist ????????????????? CDN?src ????? node_modules ???
+ */
+function copyRendererRuntimeAssets() {
+  copyDirectoryRecursive(
+    path.join(projectRoot, 'src', 'renderer', 'styles'),
+    path.join(distRoot, 'src', 'renderer', 'styles')
+  )
+
+  copyDirectoryRecursive(
+    path.join(projectRoot, 'node_modules', 'daisyui'),
+    path.join(distRoot, 'node_modules', 'daisyui')
+  )
+
+  copyRuntimeFile(
+    path.join(projectRoot, 'node_modules', 'vue', 'dist', 'vue.runtime.global.prod.js'),
+    path.join(distRoot, 'vendor', 'vue.runtime.global.prod.js')
+  )
+}
+
 function copyMigrationFiles() {
   const srcDir = path.join(projectRoot, 'electron', 'database', 'migrations')
   const destDir = path.join(distRoot, 'electron', 'database', 'migrations')
@@ -395,6 +460,7 @@ function copyMigrationFiles() {
  */
 function buildAllBundles() {
   copyMigrationFiles()
+  copyRendererRuntimeAssets()
 
   buildBundle({
     name: 'renderer',

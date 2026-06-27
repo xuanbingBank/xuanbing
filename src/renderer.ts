@@ -246,6 +246,13 @@ function bootstrap(): void {
         resolveLayout(currentRoute.value)
       )
 
+      // ?????????????????????
+      Vue.provide('currentRoute', currentRoute)
+      Vue.provide('getPageComponent', () => pageComponent.value)
+      Vue.provide('renderPage', () => pageComponent.value)
+      Vue.provide('getPageProps', () => pageProps.value)
+      Vue.provide('cachedNames', [])
+
       return {
         currentRoute,
         router,
@@ -299,12 +306,8 @@ function bootstrap(): void {
   const app = Vue.createApp(rootComponent)
   app.component('BaseToast', BaseToast)
 
-  // 提供全局上下文（供子组件 inject）
+  // ???????????????????? setup ?? Vue.provide ??????
   app.provide('router', router)
-  app.provide('currentRoute', Vue.ref<CurrentRoute | null>(null))
-  app.provide('getPageComponent', () => PAGES)
-  app.provide('getPageProps', () => ({}))
-  app.provide('cachedNames', [])
 
   app.mount('#app')
 }
