@@ -37,3 +37,26 @@ test('test 脚本会在 Node 测试前恢复 better-sqlite3 的 Node ABI', () =>
   assert.match(pkg.scripts.test, /node --test/)
   assert.match(pkg.scripts.test, /test\/renderer\/\*\.test\.js/)
 })
+
+/**
+ * 验证原生模块占用提示包含可操作信息。
+ *
+ * @returns {void}
+ */
+function testLockedBindingMessage() {
+  const { formatLockedBindingMessage } = require('./rebuild-native')
+  const message = formatLockedBindingMessage([
+    {
+      pid: 32820,
+      name: 'electron',
+      path: 'E:\\zhuomian\\xuanbing-all\\all-in-one\\xuanbing\\node_modules\\electron\\dist\\electron.exe'
+    }
+  ])
+
+  assert.ok(message.includes('better-sqlite3 的原生模块正在被以下进程占用'))
+  assert.match(message, /PID 32820/)
+  assert.match(message, /electron/)
+  assert.ok(message.includes('请先关闭旧的应用窗口或结束这些进程'))
+}
+
+test('重建前发现原生模块被占用时会生成可操作提示', testLockedBindingMessage)
