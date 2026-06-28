@@ -24,6 +24,8 @@
   <span> | </span>
   <a href="#-多窗口系统">多窗口</a>
   <span> | </span>
+  <a href="#-开发文档体系">开发文档</a>
+  <span> | </span>
   <a href="#-贡献">贡献</a>
 </h3>
 
@@ -51,6 +53,7 @@
 - [❓ FAQ](#-faq)
 - [🧪 测试](#-测试)
 - [📝 代码规范](#-代码规范)
+- [📚 开发文档体系](#-开发文档体系)
 - [🤝 贡献](#-贡献)
 - [📄 许可证](#-许可证)
 
@@ -213,7 +216,7 @@ xuanbing/
 ├── scripts/                      # 构建脚本
 │   ├── build-renderer-bundle.js  # 渲染层/preload 打包器
 │   └── rebuild-native.js         # 原生模块重编
-├── docs/                         # 文档
+├── docs/                         # 开发文档体系（架构/IPC/窗口/数据库/渲染层/组件/构建/测试/安全/约定）
 ├── index.html                    # 渲染层 HTML 入口
 ├── tsconfig.json                 # TypeScript 配置（strict）
 └── package.json
@@ -524,6 +527,37 @@ pnpm run test
 - **Zod 校验**：所有 IPC 输入/输出经 Zod schema 校验
 - **最小改动原则**：修复问题时优先最小改动，避免过度工程化
 - **中文注释**：所有公共 API 使用中文 JSDoc 注释
+
+---
+
+## 📚 开发文档体系
+
+完整的开发文档位于 [`docs/`](./docs/README.md)，基于源码深度阅读后整理，所有结论均链接到具体代码行，便于跳转验证。
+
+### 文档导航
+
+| 分类 | 文档 | 内容 |
+| --- | --- | --- |
+| **架构** | [架构总览](./docs/architecture/overview.md) · [技术栈](./docs/architecture/tech-stack.md) · [目录结构](./docs/architecture/directory-structure.md) · [启动流程](./docs/architecture/bootstrap-flow.md) | 项目哲学、依赖选型、目录职责、bootstrap 全链路 |
+| **主进程** | [入口与生命周期](./docs/main-process/entry.md) | `main.ts`/`preload.ts`/`renderer-target.ts`、单例锁、before-quit 清理 |
+| **IPC 总线** | [概览](./docs/ipc-bus/overview.md) · [契约](./docs/ipc-bus/contracts.md) · [调度时序](./docs/ipc-bus/dispatch-flow.md) · [通道清单](./docs/ipc-bus/channels.md) · [权限/限流/超时/审计](./docs/ipc-bus/security.md) | 四层架构、44 通道、Zod 校验、审计日志 |
+| **多窗口** | [概览](./docs/windows/overview.md) · [角色配置](./docs/windows/roles.md) · [生命周期](./docs/windows/lifecycle.md) · [Toast](./docs/windows/toast.md) | 双 WM 桥接、14 角色、17 项事件、8 位置 Toast |
+| **数据库** | [概览](./docs/database/overview.md) · [迁移](./docs/database/migrations.md) · [备份恢复](./docs/database/backup-restore.md) · [表结构](./docs/database/schema.md) | WAL/PRAGMA、CRLF→LF hash、pre-restore abort |
+| **.xuanbing 文件** | [格式规范](./docs/xuanbing-file/format.md) · [读写与安全](./docs/xuanbing-file/io-security.md) | magic+checksum、10MB 限制、token 防路径暴露 |
+| **渲染层** | [概览](./docs/renderer/overview.md) · [路由守卫](./docs/renderer/router.md) · [Stores](./docs/renderer/stores.md) · [Composables](./docs/renderer/composables.md) · [缓存](./docs/renderer/cache.md) | HashRouter、11 Store、25 composable、三层缓存 |
+| **组件库** | [概览](./docs/components/overview.md) · [权限门禁](./docs/components/permission-gates.md) | 7 分类 60+ 组件、PermissionGate vs WindowPermissionGate |
+| **构建/测试** | [构建](./docs/build/overview.md) · [原生重编](./docs/build/native-rebuild.md) · [测试](./docs/testing/overview.md) | build-renderer-bundle、rebuild-native、node:test |
+| **安全/约定** | [安全设计](./docs/security/overview.md) · [工程约定](./docs/conventions/constraints.md) | CSP 双层、6 条硬约束、TODO 汇总、8 条反模式 |
+
+### 场景化阅读路径
+
+- **新成员 Onboarding**：[架构总览](./docs/architecture/overview.md) → [启动流程](./docs/architecture/bootstrap-flow.md) → [IPC 概览](./docs/ipc-bus/overview.md) → [渲染层概览](./docs/renderer/overview.md) → [工程约定](./docs/conventions/constraints.md)
+- **加 IPC 通道**：[契约系统](./docs/ipc-bus/contracts.md) → [通道清单](./docs/ipc-bus/channels.md) → [权限/限流/超时/审计](./docs/ipc-bus/security.md)
+- **加窗口角色**：[角色配置](./docs/windows/roles.md) → [生命周期](./docs/windows/lifecycle.md)
+- **操作数据库**：[数据库概览](./docs/database/overview.md) → [表结构](./docs/database/schema.md) → [备份恢复](./docs/database/backup-restore.md)
+- **改 .xuanbing 文件**：[格式规范](./docs/xuanbing-file/format.md) → [读写与安全](./docs/xuanbing-file/io-security.md)
+
+> ⚠️ **硬约束**：数据库恢复前备份失败必须 abort、IPC `audit:true` 必须写日志、生产环境禁 localhost、文件导入 10MB 限制、IPC 契约必须配齐 Zod+权限+限流+超时、WindowManager 必须用 `bridgeWindowManagers()` 桥接。详见 [工程约定](./docs/conventions/constraints.md)。
 
 ---
 
