@@ -41,12 +41,23 @@ export interface BackupResult {
 /**
  * 对指定文件执行 fsync 后关闭，确保数据落盘。
  *
+ * Windows 上对只读 fd 调用 fsync 可能返回 EPERM（已知平台差异），
+ * 此时降级为告警：copyFileSync 已完成文件写入，fsync 仅影响崩溃一致性，
+ * 不影响备份文件本身的完整性。
+ *
  * @param filePath 目标文件路径。
  */
 function fsyncFile(filePath: string): void {
   const fd = fs.openSync(filePath, 'r')
   try {
     fs.fsyncSync(fd)
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code
+    if (code === 'EPERM' || code === 'ENOTSUP' || code === 'ENOSYS') {
+      console.warn('[db-backup] fsync unsupported on this platform, skipped', filePath, code)
+    } else {
+      throw err
+    }
   } finally {
     fs.closeSync(fd)
   }
