@@ -1,0 +1,41 @@
+# electron-builder 打包配置
+# 文档: https://www.electron.build/configuration
+appId: com.xuanbing.all-in-one
+productName: All In One
+copyright: Copyright © 2026 xuanbing
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - electron/**/*
+  - node_modules/**/*
+  - package.json
+  - index.html
+# 注意: 需要在 build/ 目录下放置 icon.ico 图标资源(当前缺失,需补充)
+# 图标建议尺寸: 256x256, 格式: .ico (Windows) / .icns (macOS) / 512x512.png (Linux)
+extraMetadata:
+  main: dist/electron/main.js
+# better-sqlite3 是原生模块,必须从 asar 中解包,否则运行时无法加载 .node 文件
+asarUnpack:
+  - node_modules/better-sqlite3/**/*
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # 注意: 需要在 build/ 目录下放置 icon.ico,否则打包时会使用默认图标
+  icon: build/icon.ico
+  artifactName: ${productName}-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: All In One
+publish:
+  provider: github
+  owner: xuanbingBank
+  repo: xuanbing
+  releaseType: release
