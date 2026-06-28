@@ -3,6 +3,8 @@
  */
 
 import { app, BrowserWindow, dialog, Menu, session } from 'electron'
+import fs from 'node:fs'
+import path from 'node:path'
 import { createMainIpcRuntime } from './ipcBus/main'
 import { IPC_EVENTS } from './ipcBus/shared'
 
@@ -15,14 +17,26 @@ let ipcRuntime: Awaited<ReturnType<typeof createMainIpcRuntime>> | null = null
 
 const gotInstanceLock = app.requestSingleInstanceLock()
 if (!gotInstanceLock) {
-  // TODO: 此处 app.quit() 后未提前退出，模块顶层逻辑仍会继续执行，
-  // 因 ES 模块顶层不支持 return，后续可考虑改为 app.quit() + process.exit(0)
-  // 或将启动流程包裹进函数以实现真正提前退出。
+  // 单例锁获取失败，quit 后立即退出进程，避免模块顶层逻辑继续执行。
   app.quit()
+  process.exit(0)
 }
 
 process.on('uncaughtException', (error: unknown) => {
   console.error('[main] Uncaught exception', error)
+  // 将错误写入本地崩溃日志
+  try {
+    const logsDir = path.join(app.getPath('userData'), 'logs')
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true })
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const logFile = path.join(logsDir, `crash-${timestamp}.log`)
+    const errorStack = error instanceof Error ? error.stack ?? error.message : String(error)
+    fs.writeFileSync(logFile, `[${new Date().toISOString()}] Uncaught exception\n\n${errorStack}\n`, 'utf-8')
+  } catch (logErr) {
+    console.error('[main] Failed to write crash log', logErr)
+  }
   dialog.showErrorBox('Application Error', `${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease restart the app.`)
   // 延迟退出以允许日志落盘。
   setTimeout(() => app.quit(), 1000)
@@ -30,6 +44,19 @@ process.on('uncaughtException', (error: unknown) => {
 
 process.on('unhandledRejection', (reason: unknown) => {
   console.error('[main] Unhandled promise rejection', reason)
+  // 将错误写入本地崩溃日志
+  try {
+    const logsDir = path.join(app.getPath('userData'), 'logs')
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true })
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const logFile = path.join(logsDir, `crash-${timestamp}.log`)
+    const errorStack = reason instanceof Error ? reason.stack ?? reason.message : String(reason)
+    fs.writeFileSync(logFile, `[${new Date().toISOString()}] Unhandled promise rejection\n\n${errorStack}\n`, 'utf-8')
+  } catch (logErr) {
+    console.error('[main] Failed to write crash log', logErr)
+  }
 })
 
 /**
@@ -196,18 +223,30 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
   // 阻止任何 <webview> 标签附着，强制使用 BrowserWindow + preload 模型。
-  // TODO: 缺全局 will-navigate 兜底，当前未阻止渲染层导航到 file:// 或外部 http(s)。
-  // 后续建议在此对 contents.on('will-navigate') 做校验，仅允许同源 hash 路由跳转，
-  // 防止页面被导航到非预期来源。
   app.on('web-contents-created', (_event, contents) => {
     contents.on('will-attach-webview', (e) => e.preventDefault())
+    // 仅允许同源 hash 路由跳转，阻止导航到外部 URL
+    contents.on('will-navigate', (event, url) => {
+      const pageUrl = contents.getURL()
+      try {
+        const pageOrigin = new URL(pageUrl).origin
+        const targetUrl = new URL(url, pageUrl)
+        // 允许同源且仅 hash 变化
+        if (targetUrl.origin === pageOrigin && (url.startsWith('#') || targetUrl.hash || targetUrl.href === pageUrl)) {
+          return
+        }
+        event.preventDefault()
+        console.warn(`[main] Blocked navigation to: ${url}`)
+      } catch {
+        event.preventDefault()
+        console.warn(`[main] Blocked navigation to invalid URL: ${url}`)
+      }
+    })
   })
 
   // 生产环境移除应用菜单，减少默认菜单带来的快捷键与暴露面。
-  // TODO: 生产环境检测逻辑不一致：此处用 NODE_ENV/DEV_SERVER_URL，
-  // 而 createWindow 中用 app.isPackaged 判断是否打开 DevTools。
-  // 建议统一使用 app.isPackaged 作为生产环境判定，避免环境变量未设置时误判。
-  const isProduction = process.env.NODE_ENV === 'production' || !DEV_SERVER_URL
+  // 统一使用 app.isPackaged 作为生产环境判定。
+  const isProduction = app.isPackaged
   if (isProduction) {
     Menu.setApplicationMenu(null)
   }

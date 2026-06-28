@@ -361,9 +361,9 @@ export class IpcMainBus {
   /**
    * 向所有窗口广播事件。
    *
-   * TODO: 当前向所有窗口无差别广播，未按 contract.permission 过滤接收方角色权限。
-   * 后续应改为遍历窗口时按 windowManager.getWindowRole(windowId) 与 permissionChecker 过滤，
-   * 仅向拥有该事件权限的窗口投递。对 task:failed / windowCreated 等含敏感信息的事件尤为重要。
+   * 当契约声明了 permission 时，按接收窗口角色权限过滤，仅向拥有该事件权限的窗口投递；
+   * 对 task:failed / windowCreated 等含敏感信息的事件尤为重要。
+   * 契约未声明 permission 时，保持原有行为，向所有窗口广播。
    *
    * @param eventChannel 事件通道名。
    * @param payload 事件载荷。
@@ -372,7 +372,46 @@ export class IpcMainBus {
   public broadcast(eventChannel: string, payload: unknown): number {
     const contract = this.requireEventContract(eventChannel)
     const parsedPayload = this.parseSchema(contract.payloadSchema, payload, eventChannel, 'output')
-    return this.windowManager.broadcast(eventChannel, parsedPayload)
+
+    // 契约未声明 permission 时，保持原有行为，向所有窗口广播。
+    if (!contract.permission) {
+      return this.windowManager.broadcast(eventChannel, parsedPayload)
+    }
+
+    // 按权限过滤：仅向拥有该事件权限的窗口角色投递。
+    return this.broadcastWithPermissionFilter(contract, parsedPayload)
+  }
+
+  /**
+   * 按权限过滤广播事件，仅向拥有该事件权限的窗口投递。
+   *
+   * WindowManager 未公开枚举窗口的 API，此处通过最小化类型断言只读访问其内部 windows 字段，
+   * 以读取窗口角色。仅做只读访问，不修改 WindowManager 状态。
+   *
+   * @param contract 事件契约。
+   * @param parsedPayload 已校验的事件载荷。
+   * @returns 实际送达的窗口数量。
+   */
+  private broadcastWithPermissionFilter(contract: EventContractLike<unknown>, parsedPayload: unknown): number {
+    // WindowManager 的 windows 字段为 private，权限过滤需要枚举窗口及其角色。
+    // 此处通过最小化类型断言只读访问，避免修改 WindowManager 公共 API。
+    const windowsMap = (this.windowManager as unknown as { windows: Map<number, { role: string }> }).windows
+
+    let delivered = 0
+    for (const [windowId, record] of windowsMap.entries()) {
+      // 复用 permissionChecker 判断该窗口角色是否拥有事件所需权限
+      const decision = this.permissionChecker({
+        contract: { channel: contract.event, permission: contract.permission },
+        windowRole: record.role
+      })
+      if (!decision.allowed) {
+        continue
+      }
+      if (this.windowManager.sendToWindow(windowId, contract.event, parsedPayload)) {
+        delivered += 1
+      }
+    }
+    return delivered
   }
 
   /**
@@ -489,6 +528,15 @@ export class IpcMainBus {
         ])
 
         const parsedOutput = this.parseSchema(record.contract.outputSchema, rawOutput, channel, 'output')
+
+        // 成功路径也写入审计日志，确保 audit: true 的通道成功调用被记录。
+        // 审计写入失败仅打印告警，不影响主流程返回值。
+        this.recordAuditIfNeeded(record, {
+          channel,
+          senderWindowId,
+          requestId,
+          result: 'success'
+        })
 
         return this.buildSuccessResult(parsedOutput, {
           requestId,
