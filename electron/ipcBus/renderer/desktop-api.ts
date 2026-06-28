@@ -599,6 +599,74 @@ export interface DesktopSystemApi {
   showToast(input: SystemToastInput): Promise<SystemToastOutput>
 }
 
+/* ───────────────────────── 本地鉴权 API 类型 ───────────────────────── */
+
+/**
+ * 登录请求输入类型。
+ */
+export type AuthLoginInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.authLogin]>
+
+/**
+ * 登录响应类型。
+ */
+export type AuthLoginOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.authLogin]>
+
+/**
+ * 登出请求输入类型。
+ */
+export type AuthLogoutInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.authLogout]>
+
+/**
+ * 登出响应类型。
+ */
+export type AuthLogoutOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.authLogout]>
+
+/**
+ * token 校验请求输入类型。
+ */
+export type AuthVerifyInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.authVerify]>
+
+/**
+ * token 校验响应类型。
+ */
+export type AuthVerifyOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.authVerify]>
+
+/**
+ * 修改密码请求输入类型。
+ */
+export type AuthChangePasswordInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.authChangePassword]>
+
+/**
+ * 修改密码响应类型。
+ */
+export type AuthChangePasswordOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.authChangePassword]>
+
+/**
+ * 获取当前用户请求输入类型。
+ */
+export type AuthCurrentUserInput = InferRequestInput<(typeof requestContracts)[typeof IPC_CHANNELS.authCurrentUser]>
+
+/**
+ * 获取当前用户响应类型。
+ */
+export type AuthCurrentUserOutput = InferRequestOutput<(typeof requestContracts)[typeof IPC_CHANNELS.authCurrentUser]>
+
+/**
+ * 鉴权操作命名空间。
+ */
+export interface DesktopAuthApi {
+  /** 登录,校验密码并换取会话 token */
+  login(input: AuthLoginInput): Promise<AuthLoginOutput>
+  /** 登出,销毁当前会话 token */
+  logout(input: AuthLogoutInput): Promise<AuthLogoutOutput>
+  /** 校验会话 token 有效性,返回用户与权限 */
+  verify(input: AuthVerifyInput): Promise<AuthVerifyOutput>
+  /** 修改当前用户密码 */
+  changePassword(input: AuthChangePasswordInput): Promise<AuthChangePasswordOutput>
+  /** 依据 token 获取当前登录用户信息与权限 */
+  currentUser(input: AuthCurrentUserInput): Promise<AuthCurrentUserOutput>
+}
+
 /**
  * 顶层桌面 API。
  */
@@ -612,4 +680,5 @@ export interface DesktopApi {
   readonly setting: DesktopSettingApi
   readonly xuanbingFile: DesktopXuanbingFileApi
   readonly system: DesktopSystemApi
+  readonly auth: DesktopAuthApi
 }

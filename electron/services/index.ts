@@ -2,6 +2,8 @@
  * @file services 统一导出。
  */
 
+export { AuthService } from './auth.service'
+export type { LoginResult, VerifyResult } from './auth.service'
 export { DatabaseService } from './database.service'
 export { SettingService } from './setting.service'
 export { TaskService } from './task.service'

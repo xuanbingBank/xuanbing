@@ -70,6 +70,17 @@ export {
   xuanbingFileImportResponseSchema,
   xuanbingFilePreviewResponseSchema,
   xuanbingFileValidateResponseSchema,
+  authSafeUserSchema,
+  authLoginRequestSchema,
+  authLoginResponseSchema,
+  authLogoutRequestSchema,
+  authLogoutResponseSchema,
+  authVerifyRequestSchema,
+  authVerifyResponseSchema,
+  authChangePasswordRequestSchema,
+  authChangePasswordResponseSchema,
+  authCurrentUserRequestSchema,
+  authCurrentUserResponseSchema,
   createIpcResultSchema
 } from './schemas'
 export type {

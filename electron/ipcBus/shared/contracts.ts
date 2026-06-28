@@ -5,6 +5,16 @@
 import { DEFAULT_IPC_MAX_PAYLOAD_BYTES, DEFAULT_IPC_TIMEOUT_MS, IPC_CHANNELS, IPC_EVENTS, IPC_PERMISSIONS } from './constants'
 import {
   appInfoResponseSchema,
+  authChangePasswordRequestSchema,
+  authChangePasswordResponseSchema,
+  authCurrentUserRequestSchema,
+  authCurrentUserResponseSchema,
+  authLoginRequestSchema,
+  authLoginResponseSchema,
+  authLogoutRequestSchema,
+  authLogoutResponseSchema,
+  authVerifyRequestSchema,
+  authVerifyResponseSchema,
   dbBackupResponseSchema,
   dbClearLogsResponseSchema,
   dbHealthResponseSchema,
@@ -573,6 +583,67 @@ export const requestContracts = {
     timeoutMs: 5_000,
     maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
     audit: false
+  }),
+
+  /* ───────────────────────── 本地鉴权 ───────────────────────── */
+
+  [IPC_CHANNELS.authLogin]: defineRequestContract({
+    channel: IPC_CHANNELS.authLogin,
+    description: '本地账号登录,校验密码并换取会话 token。',
+    permission: IPC_PERMISSIONS.public,
+    inputSchema: authLoginRequestSchema,
+    outputSchema: authLoginResponseSchema,
+    timeoutMs: 10_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true,
+    rateLimit: {
+      maxCalls: 5,
+      windowMs: 60_000
+    }
+  }),
+  [IPC_CHANNELS.authLogout]: defineRequestContract({
+    channel: IPC_CHANNELS.authLogout,
+    description: '登出并销毁当前会话 token。',
+    permission: IPC_PERMISSIONS.public,
+    inputSchema: authLogoutRequestSchema,
+    outputSchema: authLogoutResponseSchema,
+    timeoutMs: 10_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.authVerify]: defineRequestContract({
+    channel: IPC_CHANNELS.authVerify,
+    description: '校验会话 token 有效性,返回用户与权限。',
+    permission: IPC_PERMISSIONS.public,
+    inputSchema: authVerifyRequestSchema,
+    outputSchema: authVerifyResponseSchema,
+    timeoutMs: 10_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
+  }),
+  [IPC_CHANNELS.authChangePassword]: defineRequestContract({
+    channel: IPC_CHANNELS.authChangePassword,
+    description: '修改当前用户密码,成功后清除全部历史会话。',
+    permission: IPC_PERMISSIONS.public,
+    inputSchema: authChangePasswordRequestSchema,
+    outputSchema: authChangePasswordResponseSchema,
+    timeoutMs: 10_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true,
+    rateLimit: {
+      maxCalls: 5,
+      windowMs: 60_000
+    }
+  }),
+  [IPC_CHANNELS.authCurrentUser]: defineRequestContract({
+    channel: IPC_CHANNELS.authCurrentUser,
+    description: '依据 token 获取当前登录用户信息与权限。',
+    permission: IPC_PERMISSIONS.public,
+    inputSchema: authCurrentUserRequestSchema,
+    outputSchema: authCurrentUserResponseSchema,
+    timeoutMs: 10_000,
+    maxPayloadBytes: DEFAULT_IPC_MAX_PAYLOAD_BYTES,
+    audit: true
   })
 } as const satisfies RequestContractMap
 

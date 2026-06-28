@@ -7,6 +7,7 @@ import { app, BrowserWindow, dialog, ipcMain, screen, shell } from 'electron'
 import { IpcLogger } from './ipc-logger'
 import { IpcMainBus } from './ipc-main-bus'
 import { registerAppIpc } from './modules/app.ipc'
+import { registerAuthIpc } from './modules/auth.ipc'
 import { registerDatabaseIpc } from './modules/database.ipc'
 import { registerFileIpc } from './modules/file.ipc'
 import { registerSettingIpc } from './modules/setting.ipc'
@@ -24,7 +25,7 @@ import { DEFAULT_WINDOW_ROLE_PERMISSIONS } from '../../windows/shared/window-per
 import { resolvePreloadPath, resolveRendererTarget } from '../../renderer-target'
 import { closeConnection, openConnection, resolveDbPaths, runMigrations, type DbPaths } from '../../database'
 import { AuditRepository } from '../../repositories/audit.repository'
-import { DatabaseService, SettingService, TaskService, XuanbingFileService } from '../../services'
+import { AuthService, DatabaseService, SettingService, TaskService, XuanbingFileService } from '../../services'
 
 export interface CreateMainIpcRuntimeOptions {
   appName: string
@@ -57,6 +58,7 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
   taskService: TaskService
   settingService: SettingService
   xuanbingFileService: XuanbingFileService
+  authService: AuthService
   closeDatabase: () => void
 }> {
   const windowManager = new WindowManager()
@@ -171,6 +173,9 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
     dbFile: dbPaths.dbFile,
     appVersion: app.getVersion()
   })
+  const authService = new AuthService()
+  // 首次启动确保默认 admin 用户存在(已存在则跳过)
+  authService.ensureDefaultAdmin()
 
   /* ───────────────────────── IPC 模块注册 ───────────────────────── */
 
@@ -193,6 +198,7 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
   registerTaskDataIpc({ bus, taskService })
   registerSettingIpc({ bus, settingService })
   registerXuanbingFileIpc({ bus, xuanbingFileService })
+  registerAuthIpc({ bus, authService })
   // 桌面 Toast 窗口管理器
   const toastManager = new ToastWindowManager()
   toastManager.init()
@@ -215,6 +221,7 @@ export async function createMainIpcRuntime(options: CreateMainIpcRuntimeOptions)
     taskService,
     settingService,
     xuanbingFileService,
+    authService,
     closeDatabase
   }
 }

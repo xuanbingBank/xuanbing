@@ -11,6 +11,7 @@ import {
 import type {
   DesktopApi,
   DesktopAppApi,
+  DesktopAuthApi,
   DesktopDatabaseApi,
   DesktopFileApi,
   DesktopSettingApi,
@@ -19,6 +20,11 @@ import type {
   DesktopTaskDataApi,
   DesktopWindowApi,
   DesktopXuanbingFileApi,
+  AuthChangePasswordInput,
+  AuthCurrentUserInput,
+  AuthLoginInput,
+  AuthLogoutInput,
+  AuthVerifyInput,
   DatabaseRestoreInput,
   FileDialogInput,
   SettingDeleteOutput,
@@ -468,6 +474,42 @@ function createSystemApi(client: PreloadClient): DesktopSystemApi {
 }
 
 /**
+ * 构造鉴权操作命名空间。
+ *
+ * @param client preload 客户端。
+ * @returns 鉴权操作命名空间。
+ */
+function createAuthApi(client: PreloadClient): DesktopAuthApi {
+  return Object.freeze({
+    login: (input: AuthLoginInput) => client.safeInvoke(
+      IPC_CHANNELS.authLogin,
+      requestContracts[IPC_CHANNELS.authLogin].outputSchema,
+      input
+    ),
+    logout: (input: AuthLogoutInput) => client.safeInvoke(
+      IPC_CHANNELS.authLogout,
+      requestContracts[IPC_CHANNELS.authLogout].outputSchema,
+      input
+    ),
+    verify: (input: AuthVerifyInput) => client.safeInvoke(
+      IPC_CHANNELS.authVerify,
+      requestContracts[IPC_CHANNELS.authVerify].outputSchema,
+      input
+    ),
+    changePassword: (input: AuthChangePasswordInput) => client.safeInvoke(
+      IPC_CHANNELS.authChangePassword,
+      requestContracts[IPC_CHANNELS.authChangePassword].outputSchema,
+      input
+    ),
+    currentUser: (input: AuthCurrentUserInput) => client.safeInvoke(
+      IPC_CHANNELS.authCurrentUser,
+      requestContracts[IPC_CHANNELS.authCurrentUser].outputSchema,
+      input
+    )
+  })
+}
+
+/**
  * 构造顶层桌面 API。
  *
  * @param client preload 客户端。
@@ -483,6 +525,7 @@ export function createDesktopApi(client: PreloadClient): DesktopApi {
     taskData: createTaskDataApi(client),
     setting: createSettingApi(client),
     xuanbingFile: createXuanbingFileApi(client),
-    system: createSystemApi(client)
+    system: createSystemApi(client),
+    auth: createAuthApi(client)
   })
 }

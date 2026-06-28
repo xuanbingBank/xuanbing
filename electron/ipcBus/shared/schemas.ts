@@ -710,3 +710,96 @@ export const systemToastRequestSchema = z.object({
 export const systemToastResponseSchema = z.object({
   shown: z.boolean()
 })
+
+/* ───────────────────────── 本地鉴权 schemas ───────────────────────── */
+
+/**
+ * 脱敏用户模型(不含密码哈希与盐)。
+ */
+export const authSafeUserSchema = z.object({
+  id: z.string({ minLength: 1 }),
+  username: z.string({ minLength: 1 }),
+  displayName: z.string(),
+  roles: z.array(z.string()),
+  mustChangePassword: z.boolean(),
+  createdAt: z.string({ minLength: 1 }),
+  updatedAt: z.string({ minLength: 1 })
+})
+
+/**
+ * 登录请求模型。
+ */
+export const authLoginRequestSchema = z.object({
+  username: z.string({ minLength: 1, maxLength: 64 }),
+  password: z.string({ minLength: 1, maxLength: 256 })
+})
+
+/**
+ * 登录响应模型。
+ */
+export const authLoginResponseSchema = z.object({
+  user: authSafeUserSchema,
+  token: z.string({ minLength: 1 }),
+  permissions: z.array(z.string()),
+  mustChangePassword: z.boolean()
+})
+
+/**
+ * 登出请求模型。
+ */
+export const authLogoutRequestSchema = z.object({
+  token: z.string({ minLength: 1 })
+})
+
+/**
+ * 登出响应模型。
+ */
+export const authLogoutResponseSchema = z.object({
+  success: z.boolean()
+})
+
+/**
+ * token 校验请求模型。
+ */
+export const authVerifyRequestSchema = z.object({
+  token: z.string({ minLength: 1 })
+})
+
+/**
+ * token 校验响应模型。
+ */
+export const authVerifyResponseSchema = z.object({
+  user: authSafeUserSchema,
+  permissions: z.array(z.string())
+})
+
+/**
+ * 修改密码请求模型。
+ */
+export const authChangePasswordRequestSchema = z.object({
+  token: z.string({ minLength: 1 }),
+  oldPassword: z.string({ minLength: 1, maxLength: 256 }),
+  newPassword: z.string({ minLength: 6, maxLength: 256 })
+})
+
+/**
+ * 修改密码响应模型。
+ */
+export const authChangePasswordResponseSchema = z.object({
+  success: z.boolean()
+})
+
+/**
+ * 获取当前用户请求模型。
+ */
+export const authCurrentUserRequestSchema = z.object({
+  token: z.string({ minLength: 1 })
+})
+
+/**
+ * 获取当前用户响应模型。
+ */
+export const authCurrentUserResponseSchema = z.object({
+  user: authSafeUserSchema,
+  permissions: z.array(z.string())
+})

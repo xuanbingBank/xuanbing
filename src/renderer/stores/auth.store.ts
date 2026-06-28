@@ -1,13 +1,19 @@
 /**
  * @file 认证 Store，管理登录态、用户信息、token。
  *
- * 注意：Electron 环境下 token 存储应使用安全存储（keytar / safeStorage），
- * 本实现使用 localStorage 作为占位，生产环境需替换。
+ * 通过 IPC 调用主进程 AuthService 完成本地鉴权:
+ * - login 调用 window.desktop.auth.login 校验密码并换取 token
+ * - logout 调用 window.desktop.auth.logout 销毁会话
+ * - restoreSession 启动时校验本地 token 是否仍然有效
+ *
+ * token 持久化到 localStorage,主进程会话表为真实来源。
  */
 
 import { defineState, computedRef, storage, registerStore } from './base'
 import type { StoreBase } from './base'
 import { STORAGE_KEYS } from '../constants'
+import { authClient } from '../services/auth.client'
+import { usePermissionStore } from './permission.store'
 
 /**
  * 用户信息。
@@ -18,6 +24,8 @@ export interface AuthUser {
   displayName: string
   avatar?: string
   roles: string[]
+  /** 是否需要强制修改密码 */
+  mustChangePassword?: boolean
 }
 
 /**
@@ -45,8 +53,8 @@ export interface AuthStore extends StoreBase {
   login: (username: string, password: string) => Promise<AuthUser>
   /** 登出 */
   logout: () => Promise<void>
-  /** 恢复会话 */
-  restoreSession: () => void
+  /** 恢复会话(校验本地 token 是否仍然有效) */
+  restoreSession: () => Promise<void>
   /** 设置 token */
   setToken: (token: string | null) => void
   /** 设置用户 */
@@ -74,32 +82,31 @@ export function createAuthStore(): AuthStore {
   const userRoles = computedRef<string[]>(() => state.user?.roles ?? [])
 
   /**
-   * 占位登录实现（无实际认证后端）。
+   * 登录:调用主进程 AuthService 校验密码并换取 token。
    *
-   * TODO: 接入真实鉴权（IPC 或 HTTP），校验密码并换取 token。
-   * 当前为占位实现，已移除"任意密码通过"的鉴权绕过，登录暂不可用。
-   * 下方保留 token 持久化逻辑，供真实登录启用后使用。
+   * 成功后持久化 token 与用户信息,并把权限下发给 permissionStore。
    */
-  async function login(username: string, _password: string): Promise<AuthUser> {
+  async function login(username: string, password: string): Promise<AuthUser> {
     state.loginLoading = true
     state.loginError = null
     try {
-      // TODO: 接入真实鉴权，校验 _password 并换取 token
-      throw new Error('Login not implemented: 真实鉴权方案待接入')
+      const result = await authClient.login({ username, password })
 
-      // —— 以下为鉴权通过后的 token 持久化逻辑，供真实登录启用后使用 ——
       const user: AuthUser = {
-        id: `user-${Date.now()}`,
-        username,
-        displayName: username,
-        roles: ['user']
+        id: result.user.id,
+        username: result.user.username,
+        displayName: result.user.displayName,
+        roles: result.user.roles,
+        mustChangePassword: result.mustChangePassword
       }
 
-      const token = `desktop-session-${Date.now()}`
-      state.token = token
+      state.token = result.token
       state.user = user
-      storage.set(STORAGE_KEYS.AUTH_TOKEN, state.token)
+      storage.set(STORAGE_KEYS.AUTH_TOKEN, result.token)
       storage.set(STORAGE_KEYS.AUTH_USER, user)
+
+      // 把登录下发的权限交给 permissionStore
+      usePermissionStore().setPermissions(result.permissions)
 
       return user
     } catch (error) {
@@ -111,29 +118,62 @@ export function createAuthStore(): AuthStore {
   }
 
   /**
-   * 登出，清理全部敏感状态。
+   * 登出:通知主进程销毁会话,并清理全部敏感状态。
    */
   async function logout(): Promise<void> {
+    const token = state.token
+    if (token) {
+      try {
+        await authClient.logout({ token })
+      } catch {
+        // 主进程销毁失败不阻塞本地清理
+      }
+    }
     state.token = null
     state.user = null
     storage.remove(STORAGE_KEYS.AUTH_TOKEN)
     storage.remove(STORAGE_KEYS.AUTH_USER)
     storage.remove(STORAGE_KEYS.PERMISSIONS)
+    // 清空权限 Store
+    usePermissionStore().clear()
   }
 
   /**
-   * 恢复会话（从本地存储读取 token 与用户）。
+   * 恢复会话:从本地存储读取 token,并调用主进程校验其仍然有效。
+   *
+   * token 失效或过期时清空本地登录态。
    */
-  function restoreSession(): void {
+  async function restoreSession(): Promise<void> {
     const token = storage.get<string | null>(STORAGE_KEYS.AUTH_TOKEN, null)
-    if (token) {
+    if (!token) {
+      state.restored = true
+      return
+    }
+
+    try {
+      const result = await authClient.verify({ token })
+      const user: AuthUser = {
+        id: result.user.id,
+        username: result.user.username,
+        displayName: result.user.displayName,
+        roles: result.user.roles,
+        mustChangePassword: result.user.mustChangePassword
+      }
       state.token = token
-    }
-    const user = storage.get<AuthUser | null>(STORAGE_KEYS.AUTH_USER, null)
-    if (user) {
       state.user = user
+      storage.set(STORAGE_KEYS.AUTH_USER, user)
+      usePermissionStore().setPermissions(result.permissions)
+    } catch {
+      // token 无效或已过期,清空本地登录态
+      state.token = null
+      state.user = null
+      storage.remove(STORAGE_KEYS.AUTH_TOKEN)
+      storage.remove(STORAGE_KEYS.AUTH_USER)
+      storage.remove(STORAGE_KEYS.PERMISSIONS)
+      usePermissionStore().clear()
+    } finally {
+      state.restored = true
     }
-    state.restored = true
   }
 
   function setToken(token: string | null): void {

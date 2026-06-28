@@ -16,6 +16,7 @@ export * from './log.schema'
 export * from './audit.schema'
 export * from './sync.schema'
 export * from './file-asset.schema'
+export * from './user.schema'
 
 /**
  * migration 记录表，跟踪已执行的 migration。

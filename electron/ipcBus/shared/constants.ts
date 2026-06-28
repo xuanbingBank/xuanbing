@@ -64,7 +64,15 @@ export const IPC_CHANNELS = {
 
   systemNotificationShow: 'system:notification.show',
   systemMessageBoxShow: 'system:messageBox.show',
-  systemToastShow: 'system:toast.show'
+  systemToastShow: 'system:toast.show',
+
+  /* ───────────────────────── 本地鉴权 ───────────────────────── */
+
+  authLogin: 'auth:login',
+  authLogout: 'auth:logout',
+  authVerify: 'auth:verify',
+  authChangePassword: 'auth:changePassword',
+  authCurrentUser: 'auth:currentUser'
 } as const
 
 /**
