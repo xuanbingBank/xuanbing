@@ -296,8 +296,8 @@ export const routes: RouteRecord[] = [
 
   /* ── 日志查看器 ── */
   {
-    path: '/log-viewer',
-    name: 'logViewer',
+    path: ROUTE_PATHS.LOG_VIEWER,
+    name: ROUTE_NAMES.LOG_VIEWER,
     component: 'logViewer',
     meta: {
       title: '日志查看器',

@@ -1,5 +1,13 @@
 /**
  * @file 同步队列表 schema（outbox / inbox），预留远程同步。
+ *
+ * ⚠️ 未实现状态:表结构已就绪,但当前无 SyncRepository、无 sync.service、无同步 IPC。
+ * 若暂不实现云同步功能,这两张表仅作为占位存在,不影响应用运行。
+ * 启用云同步时需补齐:
+ *   1. electron/repositories/sync.repository.ts — outbox/inbox CRUD
+ *   2. electron/services/sync.service.ts — 同步调度器(轮询/触发)
+ *   3. electron/ipcBus/main/modules/sync.ipc.ts — 同步状态查询 IPC
+ *   4. 远程服务端 API 对接
  */
 
 import { sql } from 'drizzle-orm'

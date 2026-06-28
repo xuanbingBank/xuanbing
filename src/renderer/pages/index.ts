@@ -1,8 +1,8 @@
 /**
  * @file 全部页面组件定义与映射表。
  *
- * HomePage / DetailPage / LogViewerPage / ModalPage 保留在此文件内联实现，
- * 通过 window.desktop API 操作窗口与任务；其余页面拆分为独立文件，
+ * HomePage / DetailPage / ModalPage 保留在此文件内联实现，
+ * 通过 window.desktop API 操作窗口与任务；其余页面（含 LogViewerPage）拆分为独立文件，
  * 使用 PageContainer + 基础组件 + Tailwind/daisyUI 类名实现。
  */
 
@@ -28,6 +28,7 @@ import { FluentIcon } from '../components/base/FluentIcon'
 // 独立文件页面导入
 import { DashboardPage } from './DashboardPage'
 import { LoginPage } from './LoginPage'
+import { LogViewerPage } from './LogViewerPage'
 import { SettingsPage } from './SettingsPage'
 import { SettingsProfilePage } from './SettingsProfilePage'
 import { SettingsSecurityPage } from './SettingsSecurityPage'
@@ -82,15 +83,6 @@ export interface PageProps {
   query: Record<string, string>
   meta: RouteMeta
   route: CurrentRoute
-}
-
-/**
- * 日志条目类型。
- */
-interface LogEntry {
-  level: string
-  message: string
-  timestamp: string
 }
 
 /* ───────────────────────── 首页 ───────────────────────── */
@@ -496,107 +488,6 @@ export const DetailPage: ComponentOptions = {
           <button @click="openAnother">打开下一个详情</button>
           <button @click="closeWindow">关闭</button>
         </div>
-      </div>
-    </div>
-  `
-}
-
-/* ───────────────────────── 日志查看器页 ───────────────────────── */
-
-/**
- * 日志查看器页视图状态。
- */
-interface LogViewerPageView {
-  logs: LogEntry[]
-  filter: string
-}
-
-/**
- * 日志查看器页：展示日志条目，支持按级别筛选与刷新。
- */
-export const LogViewerPage: ComponentOptions = {
-  name: 'LogViewerPage',
-  props: {
-    params: { type: Object, default: () => ({}) },
-    query: { type: Object, default: () => ({}) },
-    meta: { type: Object, default: () => ({}) },
-    route: { type: Object, default: () => ({}) }
-  },
-  data(): LogViewerPageView {
-    return {
-      logs: [],
-      filter: 'all'
-    }
-  },
-  mounted(this: LogViewerPageView & { refreshLogs: () => void }): void {
-    this.refreshLogs()
-  },
-  methods: {
-    refreshLogs(this: LogViewerPageView): void {
-      // TODO: mock 数据,待接入真实数据源
-      const levels = ['info', 'warn', 'error', 'debug']
-      const messages = [
-        '应用启动完成',
-        'IPC 总线已连接',
-        '窗口已就绪',
-        '路由变更: / -> /log-viewer',
-        '任务队列空闲',
-        '配置文件已加载',
-        '权限校验通过',
-        '窗口状态同步完成'
-      ]
-      const newLogs: LogEntry[] = []
-      for (let i = 0; i < 8; i++) {
-        const level = levels[Math.floor(Math.random() * levels.length)]
-        const message = messages[Math.floor(Math.random() * messages.length)]
-        const time = new Date(Date.now() - i * 60000)
-        newLogs.push({
-          level,
-          message,
-          timestamp: time.toLocaleTimeString('zh-CN')
-        })
-      }
-      this.logs = newLogs
-    },
-    clearLogs(this: LogViewerPageView): void {
-      this.logs = []
-    },
-    async closeWindow(this: LogViewerPageView): Promise<void> {
-      try {
-        await useWindowControls().close()
-      } catch (err) {
-        console.warn('[index] closeWindow failed', err)
-        // 忽略关闭错误
-      }
-    }
-  },
-  template: `
-    <div>
-      <h1>日志查看器</h1>
-      <div class="actions">
-        <select v-model="filter">
-          <option value="all">全部</option>
-          <option value="info">Info</option>
-          <option value="warn">Warn</option>
-          <option value="error">Error</option>
-          <option value="debug">Debug</option>
-        </select>
-        <button @click="refreshLogs">刷新</button>
-        <button @click="clearLogs">清空</button>
-        <button @click="closeWindow">关闭</button>
-      </div>
-      <div class="log-list">
-        <div
-          class="log-item"
-          v-for="(log, index) in logs"
-          :key="log.id || (log.timestamp + '-' + log.level)"
-          v-show="filter === 'all' || log.level === filter"
-        >
-          <span class="log-time">{{ log.timestamp }}</span>
-          <span class="log-level" :class="'level-' + log.level">{{ log.level.toUpperCase() }}</span>
-          <span class="log-message">{{ log.message }}</span>
-        </div>
-        <p v-if="logs.length === 0" class="muted">暂无日志</p>
       </div>
     </div>
   `
